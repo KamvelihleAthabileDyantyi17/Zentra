@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shanon's Food Truck — UI Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.44.0/iconfont/tabler-icons.min.css">
+<style>
+  :root{
+    --char:#1A1410;
+    --char-light:#2B2119;
+    --flame:#F2581C;
+    --flame-dark:#C8430F;
+    --flame-light:#FCE2D4;
+    --amagwinya:#FFC23F;
+    --amagwinya-dark:#A87413;
+    --relish:#2E5339;
+    --relish-light:#E3ECE3;
+    --paper:#F7F1E8;
+    --paper-dark:#EDE3D2;
+    --white:#FFFFFF;
+    --ink:#1A1410;
+    --ink-soft:#6B5F52;
+    --line:#E2D6C3;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);font-family:'Inter',sans-serif;color:var(--ink);}
+  .display{font-family:'Archivo Black',sans-serif; letter-spacing:-0.01em;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  /* ===== App shell ===== */
+  .shell{max-width:1180px;margin:0 auto;padding:28px 28px 80px;}
+
+  /* ===== Top nav / view switch ===== */
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:16px;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{width:46px;height:46px;border-radius:10px;background:var(--char);display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;overflow:hidden;}
+  .brand-mark::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(135deg, var(--flame) 0 6px, transparent 6px 14px);opacity:0.18;}
+  .brand-mark i{color:var(--amagwinya);font-size:24px;position:relative;z-index:1;}
+  .brand-text .name{font-size:20px;line-height:1;}
+  .brand-text .tag{font-size:12px;color:var(--ink-soft);margin-top:3px;letter-spacing:0.04em;text-transform:uppercase;}
+
+  .switcher{display:flex;background:var(--char);border-radius:999px;padding:4px;gap:2px;}
+  .switcher button{
+    border:none;background:transparent;color:#D8CDBE;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;
+    padding:10px 18px;border-radius:999px;cursor:pointer;transition:all .15s ease;display:flex;align-items:center;gap:6px;
+  }
+  .switcher button.active{background:var(--flame);color:#fff;}
+  .switcher button:not(.active):hover{color:#fff;}
+
+  /* ===== Section visibility ===== */
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* ============================================================ */
+  /* CUSTOMER VIEW                                                  */
+  /* ============================================================ */
+  .cust-grid{display:grid;grid-template-columns: 1.55fr 1fr;gap:28px;align-items:start;}
+  @media (max-width: 860px){.cust-grid{grid-template-columns:1fr;}}
+
+  /* ticket stub truck selector */
+  .truck-ticket{display:flex;gap:10px;margin-bottom:22px;overflow-x:auto;padding-bottom:4px;}
+  .stub{
+    flex:0 0 auto;background:var(--white);border:1.5px dashed var(--flame-dark);border-radius:8px;
+    padding:10px 16px;cursor:pointer;position:relative;min-width:148px;transition:transform .12s ease;
+  }
+  .stub:hover{transform:translateY(-2px);}
+  .stub.selected{background:var(--char);border-color:var(--char);border-style:solid;}
+  .stub .stub-no{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--flame-dark);letter-spacing:0.05em;}
+  .stub.selected .stub-no{color:var(--amagwinya);}
+  .stub .stub-name{font-weight:700;font-size:14px;margin-top:2px;}
+  .stub.selected .stub-name{color:#fff;}
+  .stub .stub-loc{font-size:11px;color:var(--ink-soft);margin-top:1px;}
+  .stub.selected .stub-loc{color:#C9BDAC;}
+  .stub .stub-status{display:inline-flex;align-items:center;gap:4px;font-size:10px;margin-top:6px;font-weight:600;color:var(--relish);}
+  .stub.selected .stub-status{color:#9FD3AC;}
+  .stub .stub-status i{font-size:8px;}
+
+  /* category pills */
+  .cat-row{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+  .cat-pill{
+    border:1px solid var(--line);background:var(--white);border-radius:999px;padding:8px 16px;font-size:13px;font-weight:600;
+    cursor:pointer;color:var(--ink-soft);transition:all .12s ease;
+  }
+  .cat-pill.active{background:var(--relish);color:#fff;border-color:var(--relish);}
+  .cat-pill:not(.active):hover{border-color:var(--flame);color:var(--flame-dark);}
+
+  /* menu grid */
+  .menu-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+  @media (max-width:560px){.menu-grid{grid-template-columns:1fr;}}
+  .item-card{
+    background:var(--white);border-radius:14px;border:1px solid var(--line);overflow:hidden;position:relative;
+    transition:box-shadow .15s ease, transform .15s ease;
+  }
+  .item-card.unavailable{opacity:0.55;}
+  .item-photo{
+    height:108px;background:linear-gradient(135deg,var(--flame-light),var(--paper-dark));display:flex;align-items:center;justify-content:center;position:relative;
+  }
+  .item-photo i{font-size:34px;color:var(--flame-dark);opacity:0.55;}
+  .item-photo .charred-edge{position:absolute;inset:0;background:repeating-linear-gradient(0deg, var(--char) 0 3px, transparent 3px 4px);opacity:0;}
+  .badge-out{
+    position:absolute;top:8px;right:8px;background:var(--char);color:var(--amagwinya);font-size:10px;font-weight:700;
+    padding:3px 8px;border-radius:6px;text-transform:uppercase;letter-spacing:0.04em;
+  }
+  .item-body{padding:12px 14px 14px;}
+  .item-name{font-weight:700;font-size:14.5px;margin:0 0 2px;}
+  .item-desc{font-size:12px;color:var(--ink-soft);margin:0 0 10px;line-height:1.4;min-height:16px;}
+  .item-footer{display:flex;align-items:center;justify-content:space-between;}
+  .item-price{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:15px;color:var(--char);}
+  .add-btn{
+    width:30px;height:30px;border-radius:50%;border:none;background:var(--flame);color:#fff;font-size:16px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .1s ease, background .12s ease;
+  }
+  .add-btn:hover{background:var(--flame-dark);transform:scale(1.06);}
+  .add-btn:disabled{background:var(--line);cursor:not-allowed;}
+  .add-btn:disabled:hover{transform:none;}
+
+  /* cart panel */
+  .cart-panel{background:var(--char);border-radius:16px;padding:20px 20px 18px;color:#fff;position:sticky;top:28px;}
+  .cart-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .cart-head .h{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;}
+  .cart-truck-label{font-size:11px;color:#C9BDAC;background:rgba(255,255,255,0.08);padding:4px 10px;border-radius:999px;}
+  .cart-empty{font-size:13px;color:#A99C8B;padding:28px 0;text-align:center;}
+  .cart-line{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.08);}
+  .cart-line:last-of-type{border-bottom:none;}
+  .cart-line .qty-ctrl{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.07);border-radius:8px;padding:2px;}
+  .qty-ctrl button{width:20px;height:20px;border:none;background:transparent;color:#fff;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;border-radius:5px;}
+  .qty-ctrl button:hover{background:rgba(255,255,255,0.14);}
+  .qty-ctrl .n{font-family:'JetBrains Mono',monospace;font-size:12px;min-width:14px;text-align:center;}
+  .cart-line .ln-name{font-size:13px;font-weight:600;flex:1;}
+  .cart-line .ln-price{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#D8CDBE;}
+  .cart-totals{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.12);}
+  .cart-totals .row{display:flex;justify-content:space-between;font-size:13px;color:#C9BDAC;margin-bottom:6px;}
+  .cart-totals .row.total{color:#fff;font-weight:700;font-size:16px;margin-top:8px;}
+  .cart-totals .row.total .mono{font-family:'JetBrains Mono',monospace;}
+  .pickup-row{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.07);border-radius:10px;padding:10px 12px;margin:14px 0;font-size:12.5px;}
+  .pickup-row i{color:var(--amagwinya);font-size:16px;}
+  .checkout-btn{
+    width:100%;background:var(--flame);color:#fff;border:none;border-radius:10px;padding:13px;font-weight:700;font-size:14px;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .12s ease;
+  }
+  .checkout-btn:hover{background:var(--flame-dark);}
+  .checkout-btn:disabled{background:#4A4036;color:#8A7E6E;cursor:not-allowed;}
+
+  /* order status track */
+  .status-card{background:var(--white);border-radius:16px;border:1px solid var(--line);padding:18px 20px;margin-top:18px;}
+  .status-card .sc-title{font-size:13px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:14px;}
+  .status-track{display:flex;align-items:center;}
+  .status-step{flex:1;text-align:center;position:relative;}
+  .status-step .dot{
+    width:26px;height:26px;border-radius:50%;background:var(--paper-dark);border:2px solid var(--line);margin:0 auto 8px;
+    display:flex;align-items:center;justify-content:center;color:var(--ink-soft);font-size:12px;position:relative;z-index:1;
+  }
+  .status-step.done .dot{background:var(--relish);border-color:var(--relish);color:#fff;}
+  .status-step.current .dot{background:var(--flame);border-color:var(--flame);color:#fff;}
+  .status-step .lbl{font-size:11px;color:var(--ink-soft);font-weight:600;}
+  .status-step.done .lbl, .status-step.current .lbl{color:var(--ink);}
+  .status-line{position:absolute;top:13px;left:50%;right:-50%;height:2px;background:var(--line);z-index:0;}
+  .status-step.done .status-line{background:var(--relish);}
+  .status-step:last-child .status-line{display:none;}
+
+  /* ============================================================ */
+  /* OWNER DASHBOARD VIEW                                          */
+  /* ============================================================ */
+  .dash-top{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+  @media (max-width:760px){.dash-top{grid-template-columns:repeat(2,1fr);}}
+  .metric{background:var(--white);border-radius:14px;border:1px solid var(--line);padding:16px 18px;}
+  .metric .m-label{font-size:11.5px;color:var(--ink-soft);font-weight:600;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+  .metric .m-value{font-family:'JetBrains Mono',monospace;font-size:25px;font-weight:600;}
+  .metric .m-sub{font-size:11.5px;color:var(--relish);margin-top:4px;font-weight:600;}
+
+  .dash-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:22px;}
+  @media (max-width:900px){.dash-grid{grid-template-columns:1fr;}}
+
+  .panel{background:var(--white);border-radius:16px;border:1px solid var(--line);padding:18px 20px;margin-bottom:20px;}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .panel-head h3{font-size:14px;font-weight:700;margin:0;display:flex;align-items:center;gap:8px;}
+  .panel-head .count-badge{background:var(--flame-light);color:var(--flame-dark);font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;}
+
+  .order-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--paper-dark);}
+  .order-row:last-child{border-bottom:none;}
+  .order-id{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--ink-soft);width:48px;flex-shrink:0;}
+  .order-info{flex:1;min-width:0;}
+  .order-info .o-items{font-size:13px;font-weight:600;margin:0 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .order-info .o-meta{font-size:11.5px;color:var(--ink-soft);}
+  .order-amt{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;flex-shrink:0;}
+  .status-tag{font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:999px;text-transform:uppercase;letter-spacing:0.03em;flex-shrink:0;}
+  .status-tag.pending{background:var(--amagwinya);color:#5A3D08;}
+  .status-tag.confirmed{background:#D9E8F5;color:#1B5A8C;}
+  .status-tag.ready{background:var(--relish-light);color:var(--relish);}
+  .row-action{
+    border:1px solid var(--line);background:var(--paper);border-radius:8px;width:30px;height:30px;display:flex;
+    align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--relish);transition:all .12s ease;
+  }
+  .row-action:hover{background:var(--relish);color:#fff;border-color:var(--relish);}
+
+  .prep-list-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--paper-dark);}
+  .prep-list-item:last-child{border-bottom:none;}
+  .prep-qty{
+    background:var(--char);color:var(--amagwinya);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;
+    width:28px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .prep-name{font-size:13px;font-weight:600;flex:1;}
+  .prep-truck{font-size:11px;color:var(--ink-soft);}
+
+  .menu-toggle-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--paper-dark);}
+  .menu-toggle-row:last-child{border-bottom:none;}
+  .menu-toggle-row .mt-info{flex:1;}
+  .menu-toggle-row .mt-name{font-size:13px;font-weight:600;margin:0;}
+  .menu-toggle-row .mt-meta{font-size:11.5px;color:var(--ink-soft);}
+  .switch{position:relative;display:inline-block;width:40px;height:22px;flex-shrink:0;cursor:pointer;}
+  .switch input{opacity:0;width:0;height:0;}
+  .switch .slider{position:absolute;inset:0;background:var(--line);border-radius:999px;transition:.15s;}
+  .switch .slider::before{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s;}
+  .switch input:checked + .slider{background:var(--relish);}
+  .switch input:checked + .slider::before{transform:translateX(18px);}
+
+  .mini-chart{display:flex;align-items:flex-end;gap:6px;height:90px;margin-top:8px;}
+  .mini-chart .bar{flex:1;background:var(--flame);border-radius:4px 4px 0 0;position:relative;min-height:4px;}
+  .mini-chart .bar.peak{background:var(--relish);}
+  .mini-chart-labels{display:flex;gap:6px;margin-top:6px;}
+  .mini-chart-labels span{flex:1;text-align:center;font-size:10px;color:var(--ink-soft);}
+
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);}
+
+  .footer-note{text-align:center;font-size:11.5px;color:var(--ink-soft);margin-top:36px;padding-top:20px;border-top:1px solid var(--line);}
+</style>
+</head>
+<body>
+
+<h1 class="sr-only">Shanon's Food Truck ordering app and owner dashboard — interactive visual prototype</h1>
+
+<div class="shell">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark"><i class="ti ti-truck" aria-hidden="true"></i></div>
+      <div class="brand-text">
+        <div class="name display">SHANON'S</div>
+        <div class="tag">Street food, three trucks, one queue</div>
+      </div>
+    </div>
+    <div class="switcher" role="tablist" aria-label="Switch prototype view">
+      <button class="active" id="btn-customer" onclick="setView('customer')" role="tab" aria-selected="true">
+        <i class="ti ti-tools-kitchen-2" aria-hidden="true"></i> Customer app
+      </button>
+      <button id="btn-owner" onclick="setView('owner')" role="tab" aria-selected="false">
+        <i class="ti ti-layout-dashboard" aria-hidden="true"></i> Shanon's dashboard
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= CUSTOMER VIEW ================= -->
+  <div class="view active" id="view-customer">
+
+    <div class="truck-ticket" id="truck-ticket"></div>
+
+    <div class="cust-grid">
+      <div>
+        <div class="cat-row" id="cat-row"></div>
+        <div class="menu-grid" id="menu-grid"></div>
+
+        <div class="status-card">
+          <div class="sc-title">Your last order — #O004</div>
+          <div class="status-track" id="status-track"></div>
+        </div>
+      </div>
+
+      <div class="cart-panel">
+        <div class="cart-head">
+          <div class="h"><i class="ti ti-shopping-bag" aria-hidden="true"></i> Your order</div>
+          <span class="cart-truck-label" id="cart-truck-label"></span>
+        </div>
+        <div id="cart-body"></div>
+        <div class="pickup-row">
+          <i class="ti ti-clock" aria-hidden="true"></i>
+          <span>Pickup today, <strong id="pickup-time">12:45</strong> — Parklands, Cape Town</span>
+        </div>
+        <button class="checkout-btn" id="checkout-btn" onclick="checkout()">
+          <i class="ti ti-lock" aria-hidden="true"></i> Place order
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= OWNER DASHBOARD VIEW ================= -->
+  <div class="view" id="view-owner">
+
+    <div class="dash-top">
+      <div class="metric">
+        <div class="m-label"><i class="ti ti-receipt" aria-hidden="true"></i> Orders today</div>
+        <div class="m-value">27</div>
+        <div class="m-sub">+6 vs yesterday</div>
+      </div>
+      <div class="metric">
+        <div class="m-label"><i class="ti ti-coin" aria-hidden="true"></i> Revenue today</div>
+        <div class="m-value">R 2 145</div>
+        <div class="m-sub">across 3 trucks</div>
+      </div>
+      <div class="metric">
+        <div class="m-label"><i class="ti ti-clock-bolt" aria-hidden="true"></i> Avg prep time</div>
+        <div class="m-value">6.4<span style="font-size:14px;color:var(--ink-soft);"> min</span></div>
+        <div class="m-sub">within target</div>
+      </div>
+      <div class="metric">
+        <div class="m-label"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Low stock alerts</div>
+        <div class="m-value" style="color:var(--flame-dark);">2</div>
+        <div class="m-sub" style="color:var(--flame-dark);">cheese, soda</div>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <div>
+        <div class="panel">
+          <div class="panel-head">
+            <h3><i class="ti ti-list-details" aria-hidden="true"></i> Incoming orders</h3>
+            <span class="count-badge" id="incoming-count">4 active</span>
+          </div>
+          <div id="orders-list"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3><i class="ti ti-chart-bar" aria-hidden="true"></i> Orders by hour</h3></div>
+          <div class="mini-chart" id="mini-chart"></div>
+          <div class="mini-chart-labels" id="mini-chart-labels"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel">
+          <div class="panel-head"><h3><i class="ti ti-clipboard-list" aria-hidden="true"></i> Prep list — next hour</h3></div>
+          <div id="prep-list"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3><i class="ti ti-adjustments" aria-hidden="true"></i> Menu availability</h3></div>
+          <div id="menu-availability"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">Visual prototype for Shanon's Food Truck Online Ordering System — click-through demo, not a working backend</div>
+</div>
+
+<script>
+const TRUCKS = [
+  {id:'T001', name:"Truck 1", loc:"Parklands", open:true},
+  {id:'T002', name:"Truck 2", loc:"Blouberg", open:true},
+  {id:'T003', name:"Truck 3", loc:"Milnerton", open:false},
+];
+
+const MENU = [
+  {id:'M001', truck:'T001', name:"Full kota", cat:"Food", desc:"Quarter loaf, chips, russian, cheese", price:35, avail:true, icon:'ti-sandwich'},
+  {id:'M002', truck:'T001', name:"Amagwinya (x3)", cat:"Food", desc:"Fresh fried, served warm", price:20, avail:true, icon:'ti-circle-dot'},
+  {id:'M003', truck:'T001', name:"Cream soda", cat:"Beverage", desc:"330ml, ice cold", price:15, avail:true, icon:'ti-bottle'},
+  {id:'M004', truck:'T001', name:"Cheese kota", cat:"Food", desc:"Extra cheese, chilli sauce", price:40, avail:false, icon:'ti-sandwich'},
+  {id:'M005', truck:'T002', name:"Half kota", cat:"Food", desc:"Half loaf, chips, polony", price:25, avail:true, icon:'ti-sandwich'},
+  {id:'M006', truck:'T002', name:"Vetkoek & mince", cat:"Food", desc:"House special, two pieces", price:30, avail:true, icon:'ti-meat'},
+  {id:'M007', truck:'T002', name:"Iced tea", cat:"Beverage", desc:"500ml, lemon", price:18, avail:true, icon:'ti-bottle'},
+  {id:'M008', truck:'T002', name:"Combo: kota + drink", cat:"Combo", desc:"Full kota with any 330ml drink", price:48, avail:true, icon:'ti-package'},
+];
+
+const CATEGORIES = ["All","Food","Beverage","Combo"];
+
+let state = {
+  truck: 'T001',
+  cat: 'All',
+  cart: {},
+};
+
+function money(n){ return 'R' + n.toFixed(2); }
+
+function renderTrucks(){
+  const el = document.getElementById('truck-ticket');
+  el.innerHTML = TRUCKS.map(t => `
+    <div class="stub ${state.truck===t.id?'selected':''}" onclick="selectTruck('${t.id}')">
+      <div class="stub-no">TICKET / ${t.id}</div>
+      <div class="stub-name">${t.name}</div>
+      <div class="stub-loc">${t.loc}, Cape Town</div>
+      <div class="stub-status"><i class="ti ti-circle-filled" aria-hidden="true" style="color:${t.open?'#2E5339':'#A32D2D'}"></i>${t.open?'Open now':'Closed today'}</div>
+    </div>
+  `).join('');
+}
+
+function selectTruck(id){
+  const t = TRUCKS.find(x=>x.id===id);
+  if(!t.open) return;
+  state.truck = id;
+  renderTrucks();
+  renderMenu();
+  renderCart();
+}
+
+function renderCats(){
+  const el = document.getElementById('cat-row');
+  el.innerHTML = CATEGORIES.map(c => `
+    <button class="cat-pill ${state.cat===c?'active':''}" onclick="selectCat('${c}')">${c}</button>
+  `).join('');
+}
+function selectCat(c){ state.cat = c; renderMenu(); }
+
+function renderMenu(){
+  const el = document.getElementById('menu-grid');
+  const items = MENU.filter(m => m.truck===state.truck && (state.cat==='All' || m.cat===state.cat));
+  el.innerHTML = items.map(m => `
+    <div class="item-card ${m.avail?'':'unavailable'}">
+      <div class="item-photo">
+        ${!m.avail?'<span class="badge-out">Sold out</span>':''}
+        <i class="ti ${m.icon}" aria-hidden="true"></i>
+      </div>
+      <div class="item-body">
+        <p class="item-name">${m.name}</p>
+        <p class="item-desc">${m.desc}</p>
+        <div class="item-footer">
+          <span class="item-price">${money(m.price)}</span>
+          <button class="add-btn" ${m.avail?'':'disabled'} onclick="addToCart('${m.id}')" aria-label="Add ${m.name} to order">
+            <i class="ti ti-plus" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addToCart(id){
+  state.cart[id] = (state.cart[id]||0) + 1;
+  renderCart();
+}
+function changeQty(id, delta){
+  state.cart[id] = (state.cart[id]||0) + delta;
+  if(state.cart[id] <= 0) delete state.cart[id];
+  renderCart();
+}
+
+function renderCart(){
+  const truck = TRUCKS.find(t=>t.id===state.truck);
+  document.getElementById('cart-truck-label').textContent = truck.name;
+  const body = document.getElementById('cart-body');
+  const ids = Object.keys(state.cart);
+  const checkoutBtn = document.getElementById('checkout-btn');
+
+  if(ids.length===0){
+    body.innerHTML = `<div class="cart-empty"><i class="ti ti-shopping-cart-off" style="font-size:22px;display:block;margin:0 auto 8px;"></i>Your order is empty<br>Tap + on any item to start</div>`;
+    document.querySelector('.cart-totals')?.remove();
+    checkoutBtn.disabled = true;
+    return;
+  }
+  checkoutBtn.disabled = false;
+
+  let subtotal = 0;
+  body.innerHTML = ids.map(id => {
+    const item = MENU.find(m=>m.id===id);
+    const qty = state.cart[id];
+    const lineTotal = item.price * qty;
+    subtotal += lineTotal;
+    return `
+      <div class="cart-line">
+        <div class="qty-ctrl">
+          <button onclick="changeQty('${id}',-1)" aria-label="Remove one ${item.name}"><i class="ti ti-minus" aria-hidden="true"></i></button>
+          <span class="n">${qty}</span>
+          <button onclick="changeQty('${id}',1)" aria-label="Add one more ${item.name}"><i class="ti ti-plus" aria-hidden="true"></i></button>
+        </div>
+        <span class="ln-name">${item.name}</span>
+        <span class="ln-price mono">${money(lineTotal)}</span>
+      </div>
+    `;
+  }).join('');
+
+  document.querySelector('.cart-totals')?.remove();
+  const totalsHTML = `
+    <div class="cart-totals">
+      <div class="row"><span>Subtotal</span><span class="mono">${money(subtotal)}</span></div>
+      <div class="row"><span>Service fee</span><span class="mono">${money(2)}</span></div>
+      <div class="row total"><span>Total</span><span class="mono">${money(subtotal+2)}</span></div>
+    </div>
+  `;
+  body.insertAdjacentHTML('afterend', totalsHTML);
+}
+
+function checkout(){
+  if(Object.keys(state.cart).length===0) return;
+  state.cart = {};
+  renderCart();
+  const btn = document.getElementById('checkout-btn');
+  const original = btn.innerHTML;
+  btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Order placed — #O005';
+  btn.disabled = true;
+  setTimeout(()=>{ btn.innerHTML = original; renderCart(); }, 2200);
+}
+
+const STATUS_STEPS = [
+  {key:'pending', label:'Placed', icon:'ti-receipt'},
+  {key:'confirmed', label:'Confirmed', icon:'ti-check'},
+  {key:'preparing', label:'Preparing', icon:'ti-flame'},
+  {key:'ready', label:'Ready', icon:'ti-bell'},
+];
+const CURRENT_STATUS_INDEX = 2;
+
+function renderStatusTrack(){
+  const el = document.getElementById('status-track');
+  el.innerHTML = STATUS_STEPS.map((s,i)=>{
+    let cls = '';
+    if(i < CURRENT_STATUS_INDEX) cls='done';
+    else if(i === CURRENT_STATUS_INDEX) cls='current';
+    return `
+      <div class="status-step ${cls}">
+        <div class="status-line"></div>
+        <div class="dot"><i class="ti ${i<CURRENT_STATUS_INDEX?'ti-check':s.icon}" aria-hidden="true"></i></div>
+        <div class="lbl">${s.label}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function setView(v){
+  document.getElementById('view-customer').classList.toggle('active', v==='customer');
+  document.getElementById('view-owner').classList.toggle('active', v==='owner');
+  document.getElementById('btn-customer').classList.toggle('active', v==='customer');
+  document.getElementById('btn-owner').classList.toggle('active', v==='owner');
+  document.getElementById('btn-customer').setAttribute('aria-selected', v==='customer');
+  document.getElementById('btn-owner').setAttribute('aria-selected', v==='owner');
+}
+
+/* ---------------- OWNER DASHBOARD DATA ---------------- */
+const ORDERS = [
+  {id:'O001', items:'Full kota, Amagwinya x3', truck:'Truck 1', time:'10:30', amt:55, status:'ready'},
+  {id:'O002', items:'Full kota x2', truck:'Truck 1', time:'12:15', amt:70, status:'confirmed'},
+  {id:'O003', items:'Cream soda x2', truck:'Truck 2', time:'09:00', amt:30, status:'pending'},
+  {id:'O004', items:'Half kota, Iced tea', truck:'Truck 2', time:'12:40', amt:43, status:'confirmed'},
+];
+
+function renderOrders(){
+  const el = document.getElementById('orders-list');
+  el.innerHTML = ORDERS.map(o => `
+    <div class="order-row">
+      <span class="order-id">#${o.id}</span>
+      <div class="order-info">
+        <p class="o-items">${o.items}</p>
+        <p class="o-meta">${o.truck} · ${o.time}</p>
+      </div>
+      <span class="order-amt">${money(o.amt)}</span>
+      <span class="status-tag ${o.status}">${o.status}</span>
+      <button class="row-action" aria-label="Advance order ${o.id}" onclick="advanceOrder('${o.id}')"><i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+    </div>
+  `).join('');
+  document.getElementById('incoming-count').textContent = ORDERS.filter(o=>o.status!=='ready').length + ' active';
+}
+
+function advanceOrder(id){
+  const o = ORDERS.find(x=>x.id===id);
+  if(o.status==='pending') o.status='confirmed';
+  else if(o.status==='confirmed') o.status='ready';
+  renderOrders();
+}
+
+const PREP_LIST = [
+  {qty:5, name:'Full kota', truck:'Truck 1'},
+  {qty:3, name:'Amagwinya (x3 each)', truck:'Truck 1'},
+  {qty:4, name:'Half kota', truck:'Truck 2'},
+  {qty:2, name:'Vetkoek & mince', truck:'Truck 2'},
+  {qty:6, name:'Cream soda', truck:'Truck 1'},
+];
+function renderPrepList(){
+  document.getElementById('prep-list').innerHTML = PREP_LIST.map(p => `
+    <div class="prep-list-item">
+      <span class="prep-qty">${p.qty}x</span>
+      <span class="prep-name">${p.name}</span>
+      <span class="prep-truck">${p.truck}</span>
+    </div>
+  `).join('');
+}
+
+function renderMenuAvailability(){
+  document.getElementById('menu-availability').innerHTML = MENU.map(m => `
+    <div class="menu-toggle-row">
+      <div class="mt-info">
+        <p class="mt-name">${m.name}</p>
+        <p class="mt-meta">${TRUCKS.find(t=>t.id===m.truck).name} · ${money(m.price)}</p>
+      </div>
+      <label class="switch">
+        <input type="checkbox" ${m.avail?'checked':''} onchange="toggleAvail('${m.id}')">
+        <span class="slider"></span>
+      </label>
+    </div>
+  `).join('');
+}
+function toggleAvail(id){
+  const m = MENU.find(x=>x.id===id);
+  m.avail = !m.avail;
+  renderMenuAvailability();
+  renderMenu();
+}
+
+function renderMiniChart(){
+  const hours = ['08h','09h','10h','11h','12h','13h','14h','15h'];
+  const vals = [3,5,8,6,12,15,9,4];
+  const max = Math.max(...vals);
+  document.getElementById('mini-chart').innerHTML = vals.map(v => `<div class="bar ${v===max?'peak':''}" style="height:${(v/max)*100}%"></div>`).join('');
+  document.getElementById('mini-chart-labels').innerHTML = hours.map(h=>`<span>${h}</span>`).join('');
+}
+
+/* ---------------- INIT ---------------- */
+renderTrucks();
+renderCats();
+renderMenu();
+renderCart();
+renderStatusTrack();
+renderOrders();
+renderPrepList();
+renderMenuAvailability();
+renderMiniChart();
+</script>
+
+</body>
+</html>
