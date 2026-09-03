@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Staff login — Shanon's Food Truck Admin</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body style="background:var(--admin-ink);min-height:100vh;display:flex;align-items:center;padding-bottom:0;">
+
+  <main class="container" style="max-width:400px;">
+    <div class="card card-pad">
+      <div class="brand" style="margin-bottom:24px;">
+        <span class="brand-mark" style="background:var(--admin);">S</span>
+        Shanon's Admin
+      </div>
+      <h1 style="font-size:1.3rem;margin-bottom:4px;">Staff login</h1>
+      <p style="margin-bottom:20px;">For Shanon and the team only. This is a Task 1 prototype — no real authentication is wired up yet.</p>
+
+      <form id="admin-login-form">
+        <div class="field">
+          <label for="admin-user">Username</label>
+          <input type="text" id="admin-user" name="admin-user" placeholder="shanon" required />
+        </div>
+        <div class="field">
+          <label for="admin-pass">Password</label>
+          <input type="password" id="admin-pass" name="admin-pass" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="btn btn-admin btn-block">Log in</button>
+      </form>
+
+      <p style="margin-top:18px;text-align:center;font-size:0.85rem;"><a href="../index.html">← Back to the customer site</a></p>
+    </div>
+  </main>
+
+  <script src="../assets/js/script.js"></script>
+</body>
+</html>
