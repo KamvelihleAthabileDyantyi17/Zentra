@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your cart — Shanon's Food Truck</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html"><span class="brand-mark">S</span>Shanon's Food Truck</a>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="menu.html">Menu</a></li>
+          <li><a href="order-status.html">Order status</a></li>
+          <li><a href="feedback.html">Feedback</a></li>
+        </ul>
+      </nav>
+      <a class="btn btn-outline nav-cta btn-sm" href="menu.html">Add more items</a>
+    </div>
+  </header>
+
+  <main class="container section">
+    <h1 style="font-size:1.7rem;">Your cart</h1>
+
+    <div id="cart-empty" class="empty-state" style="display:none;">
+      <div class="empty-icon">🛒</div>
+      <h3>Your cart is empty</h3>
+      <p>Nothing here yet — go grab something from the menu.</p>
+      <a class="btn btn-primary" href="menu.html">Browse the menu</a>
+    </div>
+
+    <div class="card card-pad" style="max-width:560px;">
+      <div id="cart-list"></div>
+    </div>
+
+    <div id="cart-summary" class="card card-pad" style="max-width:560px;margin-top:18px;">
+      <div class="line-row"><span>Subtotal</span><span id="cart-subtotal">R0.00</span></div>
+      <div class="line-row"><span>Delivery / service fee</span><span id="cart-delivery">R0.00</span></div>
+      <div class="summary-total"><span>Total</span><span id="cart-grand-total">R0.00</span></div>
+      <a class="btn btn-primary btn-block" href="checkout.html" style="margin-top:18px;">Proceed to checkout</a>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p style="margin:0;">Shanon's Food Truck · Parklands · Online ordering prototype</p>
+    </div>
+  </footer>
+
+  <nav class="tabbar" aria-label="Primary">
+    <a href="index.html"><span class="tab-icon">🏠</span>Home</a>
+    <a href="menu.html"><span class="tab-icon">🍽️</span>Menu</a>
+    <a href="cart.html" aria-current="page"><span class="tab-icon">🛒</span>Cart</a>
+    <a href="order-status.html"><span class="tab-icon">📍</span>Status</a>
+    <a href="feedback.html"><span class="tab-icon">⭐</span>Feedback</a>
+  </nav>
+
+  <script src="assets/js/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Menu — Shanon's Food Truck</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html"><span class="brand-mark">S</span>Shanon's Food Truck</a>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="menu.html" aria-current="page">Menu</a></li>
+          <li><a href="order-status.html">Order status</a></li>
+          <li><a href="feedback.html">Feedback</a></li>
+        </ul>
+      </nav>
+      <a class="btn btn-primary nav-cta btn-sm" href="cart.html">Cart (<span data-cart-count>0</span>)</a>
+    </div>
+  </header>
+
+  <main class="container section" style="padding-bottom:20px;">
+
+    <div class="menu-banner">
+      <strong>Shanon's Food Truck</strong>
+      Amagwinya, kotas &amp; cold drinks made fresh to order
+    </div>
+
+    <div class="category-tabs" role="tablist" aria-label="Menu categories">
+      <button class="category-tab" role="tab" aria-selected="true" data-category="all">All</button>
+      <button class="category-tab" role="tab" aria-selected="false" data-category="mains">Mains</button>
+      <button class="category-tab" role="tab" aria-selected="false" data-category="drinks">Drinks</button>
+    </div>
+
+    <h2 style="font-size:1.1rem;margin-bottom:14px;">Mains</h2>
+    <div class="menu-list">
+
+      <div class="card menu-item" data-item-category="mains">
+        <div class="menu-item-thumb">🥙</div>
+        <div class="menu-item-body">
+          <h3>Signature Kota</h3>
+          <p>Loaded bread, chips, russian &amp; cheese, Shanon's secret sauce</p>
+        </div>
+        <span class="menu-item-price">R55.00</span>
+        <button class="menu-item-add" type="button" data-add-item="kota-signature" data-name="Signature Kota" data-price="55" aria-label="Add Signature Kota to cart">+</button>
+      </div>
+
+      <div class="card menu-item" data-item-category="mains">
+        <div class="menu-item-thumb">🌭</div>
+        <div class="menu-item-body">
+          <h3>Half Kota</h3>
+          <p>All the flavour, half the size great with a drink</p>
+        </div>
+        <span class="menu-item-price">R32.00</span>
+        <button class="menu-item-add" type="button" data-add-item="kota-half" data-name="Half Kota" data-price="32" aria-label="Add Half Kota to cart">+</button>
+      </div>
+
+      <div class="card menu-item" data-item-category="mains">
+        <div class="menu-item-thumb">🍩</div>
+        <div class="menu-item-body">
+          <h3>Amagwinya (4 pack)</h3>
+          <p>Soft, fluffy fried dough a Parklands favourite</p>
+        </div>
+        <span class="menu-item-price">R25.00</span>
+        <button class="menu-item-add" type="button" data-add-item="amagwinya-4" data-name="Amagwinya (4 pack)" data-price="25" aria-label="Add Amagwinya to cart">+</button>
+      </div>
+
+      <div class="card menu-item" data-item-category="mains">
+        <div class="menu-item-thumb">🍟</div>
+        <div class="menu-item-body">
+          <h3>Slap Chips</h3>
+          <p>Extra portion of chips, salt &amp; vinegar on request</p>
+        </div>
+        <span class="menu-item-price">R20.00</span>
+        <button class="menu-item-add" type="button" data-add-item="chips" data-name="Slap Chips" data-price="20" aria-label="Add Slap Chips to cart">+</button>
+      </div>
+
+    </div>
+
+    <h2 style="font-size:1.1rem;margin-bottom:14px;">Drinks</h2>
+    <div class="menu-list">
+
+      <div class="card menu-item" data-item-category="drinks">
+        <div class="menu-item-thumb">🥤</div>
+        <div class="menu-item-body">
+          <h3>Cold Drink (330ml)</h3>
+          <p>Ask about today's flavours</p>
+        </div>
+        <span class="menu-item-price">R15.00</span>
+        <button class="menu-item-add" type="button" data-add-item="cold-drink" data-name="Cold Drink (330ml)" data-price="15" aria-label="Add Cold Drink to cart">+</button>
+      </div>
+
+      <div class="card menu-item" data-item-category="drinks">
+        <div class="menu-item-thumb">🧃</div>
+        <div class="menu-item-body">
+          <h3>Homemade Ice Tea</h3>
+          <p>Brewed fresh daily</p>
+        </div>
+        <span class="menu-item-price">R18.00</span>
+        <button class="menu-item-add" type="button" data-add-item="ice-tea" data-name="Homemade Ice Tea" data-price="18" aria-label="Add Homemade Ice Tea to cart">+</button>
+      </div>
+
+    </div>
+
+    <div class="sticky-cart-bar">
+      <a class="btn btn-primary btn-block" href="cart.html">View cart (<span data-cart-count>0</span>)</a>
+    </div>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p style="margin:0;">Shanon's Food Truck · Parklands · Online ordering prototype</p>
+    </div>
+  </footer>
+
+  <nav class="tabbar" aria-label="Primary">
+    <a href="index.html"><span class="tab-icon">🏠</span>Home</a>
+    <a href="menu.html" aria-current="page"><span class="tab-icon">🍽️</span>Menu</a>
+    <a href="cart.html"><span class="tab-icon">🛒</span>Cart</a>
+    <a href="order-status.html"><span class="tab-icon">📍</span>Status</a>
+    <a href="feedback.html"><span class="tab-icon">⭐</span>Feedback</a>
+  </nav>
+
+  <script src="assets/js/script.js"></script>
+</body>
+</html>

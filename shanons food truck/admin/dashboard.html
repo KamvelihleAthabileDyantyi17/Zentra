@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — Shanon's Food Truck Admin</title>
+  <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body style="padding-bottom:0;">
+
+  <div class="admin-shell">
+    <aside class="admin-sidebar">
+      <div class="brand"><span class="brand-mark">S</span>Shanon's Admin</div>
+      <ul class="admin-nav">
+        <li><a href="dashboard.html" aria-current="page">📊 Dashboard</a></li>
+        <li><a href="menu-management.html">🍽️ Menu management</a></li>
+        <li><a href="inventory.html">📦 Inventory</a></li>
+        <li><a href="../index.html">🌐 View customer site</a></li>
+      </ul>
+    </aside>
+
+    <div>
+      <div class="admin-topbar-mobile">
+        <div class="brand" style="color:#fff;"><span class="brand-mark">S</span>Admin</div>
+        <a href="../index.html" style="color:#fff;font-size:0.85rem;">Site →</a>
+      </div>
+
+      <main class="admin-main">
+        <h1 style="font-size:1.6rem;">Good morning, Shanon 👋</h1>
+        <p style="margin-bottom:24px;">Here's how the truck is doing today.</p>
+
+        <div class="stat-grid">
+          <div class="card stat-card"><span>Orders today</span><b>18</b></div>
+          <div class="card stat-card"><span>Revenue today</span><b>R1 240</b></div>
+          <div class="card stat-card"><span>Avg. rating</span><b>4.8★</b></div>
+          <div class="card stat-card"><span>Low stock alerts</span><b>2</b></div>
+        </div>
+
+        <div class="card card-pad">
+          <h3 style="margin-bottom:14px;">Recent orders</h3>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr><th>Order</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>SFT-1042</td><td>Lindiwe M.</td><td>Signature Kota × 2</td><td>R110.00</td><td><span class="status-dot status-ok">Ready</span></td></tr>
+                <tr><td>SFT-1041</td><td>Sipho N.</td><td>Amagwinya, Ice Tea</td><td>R43.00</td><td><span class="status-dot status-low">Preparing</span></td></tr>
+                <tr><td>SFT-1040</td><td>Amanda K.</td><td>Half Kota, Chips</td><td>R52.00</td><td><span class="status-dot status-ok">Collected</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="../assets/js/script.js"></script>
+</body>
+</html>
