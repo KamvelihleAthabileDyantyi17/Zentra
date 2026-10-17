@@ -37,7 +37,8 @@ class CartFragment : Fragment() {
 
             // 1. Create the Bundle with our data
             val bundle = Bundle()
-            bundle.putString("ORDER_ID", "SFT-99999")
+            val randomOrderNumber = (10000..99999).random()
+            bundle.putString("ORDER_ID", "SFT-$randomOrderNumber")
             bundle.putDouble("TOTAL_PRICE", finalTotal)
 
             // 2. Attach the bundle to the OrderStatusFragment
