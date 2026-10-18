@@ -6,7 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import com.example.shannosfoodtruck.R
-import android.app.fragment
+
 class OrderStatusFragment : Fragment() {
 
     override fun onCreateView(

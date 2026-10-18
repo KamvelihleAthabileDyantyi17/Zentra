@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.example.shannosfoodtruck.features.cart.CartFragment
+import com.example.shannosfoodtruck.features.home.HomeFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.example.shannosfoodtruck.R
 
@@ -14,21 +15,16 @@ class MainActivity : AppCompatActivity() {
 
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
 
-        // Load Cart by default when app opens just so you can see your work
         if (savedInstanceState == null) {
-            loadFragment(CartFragment())
-            bottomNav.selectedItemId = R.id.nav_cart
+            loadFragment(HomeFragment())
+            bottomNav.selectedItemId = R.id.nav_home
         }
 
         // Listen for tab clicks
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> {
-                    // TODO: loadFragment(HomeFragment())
-                    true
-                }
-                R.id.nav_menu -> {
-                    // TODO: loadFragment(MenuFragment())
+                    loadFragment(HomeFragment())
                     true
                 }
                 R.id.nav_cart -> {
