@@ -1,6 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.compose) // <-- Added this back so Compose doesn't crash
+    git checkout main    alias(libs.plugins.kotlin.compose) // <-- Added this back so Compose doesn't crash
 }
 
 android {
