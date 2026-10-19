@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:padding="24dp">
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="Settings" android:textSize="24sp" android:textStyle="bold"/>
+    <EditText android:id="@+id/inputDisplayName" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:hint="Display name"/>
+    <androidx.appcompat.widget.SwitchCompat android:id="@+id/switchNotifications"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Order notifications"/>
+    <androidx.appcompat.widget.SwitchCompat android:id="@+id/switchDark"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Dark mode"/>
+    <Button android:id="@+id/buttonSave" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="Save settings"/>
+    <Button android:id="@+id/buttonLogout" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="Log out"/>
+
+    <Button
+        android:id="@+id/buttonManageMenu"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Manage menu" />
+</LinearLayout>

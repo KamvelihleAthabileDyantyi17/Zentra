@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:padding="16dp">
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="Manage menu" android:textSize="22sp" android:textStyle="bold"/>
+    <EditText android:id="@+id/inputItemName" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:hint="Item name"/>
+    <EditText android:id="@+id/inputItemDesc" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:hint="Description"/>
+    <EditText android:id="@+id/inputItemPrice" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:hint="Price (e.g. 45.00)"
+        android:inputType="numberDecimal"/>
+    <EditText android:id="@+id/inputItemCategory" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:hint="Category (Mains or Drinks)"/>
+    <EditText android:id="@+id/inputItemEmoji" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:hint="Emoji (optional)"/>
+    <Button android:id="@+id/buttonAddItem" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="Add item"/>
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" android:text="Current menu (long-press an item to delete)"/>
+    <ListView android:id="@+id/listMenu" android:layout_width="match_parent"
+        android:layout_height="0dp" android:layout_weight="1"/>
+</LinearLayout>

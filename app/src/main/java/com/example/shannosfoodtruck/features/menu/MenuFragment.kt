@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.shannosfoodtruck.R
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import com.example.shannosfoodtruck.features.cart.CartStore
 
 class MenuFragment : Fragment() {
 
@@ -38,6 +39,7 @@ class MenuFragment : Fragment() {
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
 
         menuAdapter = MenuAdapter(emptyList()) { menuItem ->
+            CartStore.add(menuItem.name, menuItem.price)
             Toast.makeText(requireContext(), "${menuItem.name} added to cart!", Toast.LENGTH_SHORT).show()
         }
         recyclerView.adapter = menuAdapter

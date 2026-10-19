@@ -5,53 +5,87 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.example.shannosfoodtruck.R
 import com.example.shannosfoodtruck.features.orderstatus.OrderStatusFragment
-import java.util.Locale // <-- Added to fix the yellow String format warning
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import java.util.Locale
 
 class CartFragment : Fragment() {
 
-    // Initialize the ViewModel
     private val viewModel: CartViewModel by viewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View? {
         val view = inflater.inflate(R.layout.fragment_cart, container, false)
+        render(view)
 
-        val btnConfirm = view.findViewById<Button>(R.id.btnConfirmOrder)
-        val tvTotal = view.findViewById<TextView>(R.id.tvTotalPrice)
+        view.findViewById<Button>(R.id.btnConfirmOrder).setOnClickListener {
+            val items = viewModel.currentCart
+            if (items.isEmpty()) {
+                Toast.makeText(requireContext(), "Your cart is empty", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val total = viewModel.calculateTotal()
+            val orderId = "SFT-${(10000..99999).random()}"
 
-        // Ask the ViewModel for the total and update the UI
-        val finalTotal = viewModel.calculateTotal()
-        tvTotal.text = String.format(Locale.getDefault(), "R%.2f", finalTotal)
+            // Save the order online so it appears in Firestore
+            FirebaseFirestore.getInstance().collection("orders").document(orderId).set(
+                mapOf(
+                    "id" to orderId,
+                    "customer" to (FirebaseAuth.getInstance().currentUser?.email ?: "guest"),
+                    "total" to total,
+                    "status" to "Received",
+                    "items" to items.map { "${it.quantity} x ${it.name}" },
+                    "createdAt" to System.currentTimeMillis()
+                )
+            ).addOnFailureListener {
+                Toast.makeText(requireContext(), "Could not save order online", Toast.LENGTH_SHORT).show()
+            }
 
-        btnConfirm.setOnClickListener {
+            val tracker = OrderStatusFragment()
+            tracker.arguments = Bundle().apply {
+                putString("ORDER_ID", orderId)
+                putDouble("TOTAL_PRICE", total)
+            }
+            CartStore.clear()
             Toast.makeText(requireContext(), "Order Confirmed!", Toast.LENGTH_SHORT).show()
-
-            // 1. Create the Bundle with our data
-            val bundle = Bundle()
-            val randomOrderNumber = (10000..99999).random()
-            bundle.putString("ORDER_ID", "SFT-$randomOrderNumber")
-            bundle.putDouble("TOTAL_PRICE", finalTotal)
-
-            // 2. Attach the bundle to the OrderStatusFragment
-            val trackerFragment = OrderStatusFragment()
-            trackerFragment.arguments = bundle
-
-            // 3. Swap the screen
             requireActivity().supportFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, trackerFragment)
+                .replace(R.id.fragment_container, tracker)
                 .addToBackStack(null)
                 .commit()
         }
-
         return view
+    }
+
+    /** Draws the cart rows and the total from the shared cart. */
+    private fun render(view: View) {
+        val box = view.findViewById<LinearLayout>(R.id.cartItemsContainer)
+        val tvTotal = view.findViewById<TextView>(R.id.tvTotalPrice)
+        box.removeAllViews()
+
+        if (viewModel.currentCart.isEmpty()) {
+            box.addView(TextView(requireContext()).apply { text = "Your cart is empty. Add items from the Menu." })
+        }
+        viewModel.currentCart.forEach { item ->
+            val row = LinearLayout(requireContext()).apply { orientation = LinearLayout.HORIZONTAL }
+            row.addView(TextView(requireContext()).apply {
+                text = String.format(Locale.getDefault(), "%d x %s   R%.2f",
+                    item.quantity, item.name, item.price * item.quantity)
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            })
+            row.addView(Button(requireContext()).apply {
+                text = "Remove"
+                setOnClickListener { CartStore.remove(item.name); render(view) }
+            })
+            box.addView(row)
+        }
+        tvTotal.text = String.format(Locale.getDefault(), "Total: R%.2f", viewModel.calculateTotal())
     }
 }

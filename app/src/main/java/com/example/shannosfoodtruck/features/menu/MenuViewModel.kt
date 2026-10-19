@@ -5,6 +5,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import com.example.shannosfoodtruck.data.MenuRepository
+import com.google.firebase.firestore.ListenerRegistration
 
 /** One item on Shanon's menu. */
 data class MenuItem(
@@ -13,7 +15,8 @@ data class MenuItem(
     val description: String,
     val price: Double,
     val category: String,   // "Mains" or "Drinks"
-    val emoji: String
+    val emoji: String,
+    val docId: String = ""  // Added so Firestore delete/updates work properly
 )
 
 data class MenuUiState(
@@ -25,17 +28,19 @@ data class MenuUiState(
 
 class MenuViewModel : ViewModel() {
 
-    private val allItems = listOf(
-        MenuItem(1, "Signature Kota", "Loaded bread, chips, russian & cheese, Shanon's secret sauce", 55.0, "Mains", "🍔"),
-        MenuItem(2, "Half Kota", "All the flavour, half the size", 32.0, "Mains", "🍔"),
-        MenuItem(3, "Amagwinya (4 pack)", "Soft, fluffy fried dough", 25.0, "Mains", "🥯"),
-        MenuItem(4, "Slap Chips", "Extra portion of chips, salt & vinegar on request", 20.0, "Mains", "🍟"),
-        MenuItem(5, "Cold Drink (330ml)", "Ask about today's flavours", 15.0, "Drinks", "🥤"),
-        MenuItem(6, "Homemade Ice Tea", "Brewed fresh daily", 18.0, "Drinks", "🧃")
-    )
+    private var allItems: List<MenuItem> = emptyList()
+    private var registration: ListenerRegistration? = null
 
-    private val _state = MutableStateFlow(MenuUiState(items = allItems))
+    private val _state = MutableStateFlow(MenuUiState())
     val state: StateFlow<MenuUiState> = _state.asStateFlow()
+
+    init {
+        // Real-time: runs again whenever menu_items changes in Firestore
+        registration = MenuRepository.listen({ items ->
+            allItems = items
+            _state.update { it.withFilter() }
+        })
+    }
 
     fun selectCategory(category: String?) {
         _state.update { it.copy(selectedCategory = category).withFilter() }
@@ -45,12 +50,16 @@ class MenuViewModel : ViewModel() {
         _state.update { it.copy(query = query).withFilter() }
     }
 
-    /** Re-applies the category and search filters to the full list. */
     private fun MenuUiState.withFilter(): MenuUiState {
         val filtered = allItems.filter { item ->
             (selectedCategory == null || item.category == selectedCategory) &&
                     (query.isBlank() || item.name.contains(query.trim(), ignoreCase = true))
         }
         return copy(items = filtered)
+    }
+
+    override fun onCleared() {
+        registration?.remove()
+        super.onCleared()
     }
 }

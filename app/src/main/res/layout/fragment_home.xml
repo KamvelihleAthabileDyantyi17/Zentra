@@ -28,15 +28,6 @@
             android:textSize="16sp"
             android:textColor="#333333" />
 
-        <TextView
-            android:id="@+id/textPopular"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="Popular right now"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="#000000" />
         <Button
             android:id="@+id/buttonOrderNow"
             android:layout_width="match_parent"
@@ -51,6 +42,14 @@
             android:layout_marginTop="8dp"
             android:text="Track My Order" />
 
+        <!-- Add the Settings Button here in the XML -->
+        <Button
+            android:id="@+id/buttonSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Settings" />
+
         <TextView
             android:id="@+id/textPopular"
             android:layout_width="match_parent"
@@ -58,7 +57,8 @@
             android:layout_marginTop="24dp"
             android:text="Popular right now"
             android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:textColor="#000000" />
 
         <LinearLayout
             android:id="@+id/featuredContainer"

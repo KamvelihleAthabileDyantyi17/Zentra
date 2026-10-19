@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "358281923499",
+    "project_id": "shannos-food-truck",
+    "storage_bucket": "shannos-food-truck.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:358281923499:android:5eaa4d74759a7696a7e0ee",
+        "android_client_info": {
+          "package_name": "com.example.shannosfoodtruck"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "358281923499-knoue5daq7fj14og9qmib3ukhvafo538.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.shannosfoodtruck",
+            "certificate_hash": "17d94b904dc8f11c63cdbfbd4fbf69d1b7aa5d1a"
+          }
+        },
+        {
+          "client_id": "358281923499-9n948mcvhrc9hoacikbmpduc85pctqpl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBSf0IIJXRiGtzi84o7I4vIOw_0sassGYg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "358281923499-9n948mcvhrc9hoacikbmpduc85pctqpl.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
