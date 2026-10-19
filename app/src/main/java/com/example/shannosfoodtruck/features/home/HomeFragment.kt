@@ -10,6 +10,8 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import com.example.shannosfoodtruck.R
+import com.example.shannosfoodtruck.features.menu.MenuFragment
+import com.example.shannosfoodtruck.features.orderstatus.OrderStatusFragment
 
 class HomeFragment : Fragment() {
 
@@ -40,14 +42,16 @@ class HomeFragment : Fragment() {
             featuredContainer.addView(card)
         }
 
-        view.findViewById<Button>(R.id.buttonOrderNow).setOnClickListener {
-            // TODO: go to the Menu screen (copy how Kamva navigates, e.g.
-            // findNavController().navigate(R.id.menuFragment))
+        view.findViewById<Button>(R.id.buttonOrderNow)?.setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.fragment_container, MenuFragment())
+                .addToBackStack(null)
+                .commit()
         }
 
         view.findViewById<Button>(R.id.buttonTrackOrder)?.setOnClickListener {
             parentFragmentManager.beginTransaction()
-                .replace(R.id.fragment_container, com.example.shannosfoodtruck.features.orderstatus.OrderStatusFragment())
+                .replace(R.id.fragment_container, OrderStatusFragment())
                 .addToBackStack(null)
                 .commit()
         }
