@@ -34,3 +34,5 @@ The project has shifted from isolated planning into an interconnected, agile dev
 ## ⚠️ Current Development Status & Rules
 * **Strict PR Workflow:** No direct commits to the `main` branch are permitted. All code updates by developers must be pushed via feature branches (e.g., `feature/admin-inventory`) and reviewed by the Team Lead against the approved UI designs.
 * **Hardware Mitigation:** Due to severe resource-heavy performance bottlenecks with Android Virtual Devices (emulators) within Android Studio, all mobile deployment testing is actively routed through physical Android smartphones[cite: 4].
+
+* DEMO VIDEO LINK:https://youtu.be/KhhJptnaOf4
