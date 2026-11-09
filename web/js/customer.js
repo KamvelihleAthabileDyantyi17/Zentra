@@ -379,7 +379,7 @@ function accountScreen() {
           <button class="btn btn-google btn-block" data-action="google" ${state.signingIn ? "disabled" : ""}><span class="g">G</span> ${state.signingIn ? "Signing in…" : "Continue with Google"}</button>
           <span class="muted small">No account needed to order. You can always continue as a guest.</span>
         </div>
-        <p class="muted small">Work at the truck? <a href="staff.html">Staff login</a></p>
+        <p class="muted small">Work at the truck? <a href="staff.html">Staff login</a> · <a href="privacy.html">Privacy policy</a></p>
       </div>`;
   }
   return `
@@ -393,6 +393,7 @@ function accountScreen() {
             <span style="color:var(--green);font-weight:700;font-size:13px">Signed in with Google</span></span>
         </div>
         <button class="btn btn-ghost btn-block" data-action="sign-out">Sign out</button>
+        <button class="link-btn" data-action="delete-account" style="align-self:center">Delete my account</button>
       </div>
       <div class="stack">
         <span class="label">My orders</span>
@@ -404,7 +405,7 @@ function accountScreen() {
           </div>`).join("")}</div>`
         : `<p class="muted" style="margin:0">No orders yet. Your next order will show up here.</p>`}
       </div>
-      <p class="muted small">Work at the truck? <a href="staff.html">Staff login</a></p>
+      <p class="muted small">Work at the truck? <a href="staff.html">Staff login</a> · <a href="privacy.html">Privacy policy</a></p>
     </div>`;
 }
 
@@ -524,6 +525,18 @@ document.addEventListener("click", async (e) => {
       clearActiveOrder(); // the tracked order belongs to the signed-out account
       state.form = { ...state.form, name: "", phone: "" };
       toast("Signed out");
+      break;
+    case "delete-account":
+      if (!confirm("Delete your account? This permanently deletes your Shannos login. Your past orders stay with the truck but are no longer linked to you. This can't be undone.")) break;
+      try {
+        await auth.deleteAccount();
+        clearActiveOrder();
+        state.form = { ...state.form, name: "", phone: "" };
+        toast("Your account has been deleted");
+      } catch (err) {
+        log.e("Customer", "Account deletion failed", err);
+        toast(err.message || "Couldn't delete your account. Please try again.");
+      }
       break;
     case "rate": state.rating = Number(id); lastRoute = null; render(); break;
     case "send-feedback": {

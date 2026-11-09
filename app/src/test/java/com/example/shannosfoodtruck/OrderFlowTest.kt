@@ -180,4 +180,17 @@ class OrderFlowTest {
         idle()
         assertEquals(true, staff.state.value.signedIn)
     }
+
+    @Test
+    fun deleteAccountSignsOutAndClearsDetails() {
+        customer.signInWithGoogle("demo-token")
+        idle()
+        assertTrue(customer.state.value.isSignedIn)
+        var deleted = false
+        customer.deleteAccount { deleted = true }
+        idle()
+        assertTrue(deleted)
+        assertFalse(customer.state.value.isSignedIn)
+        assertEquals("", customer.state.value.form.name)
+    }
 }
