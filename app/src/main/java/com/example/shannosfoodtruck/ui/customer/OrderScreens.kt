@@ -104,7 +104,7 @@ fun MenuScreen(
             state.menu.isEmpty() -> item {
                 Panel {
                     Text("The menu is empty", fontWeight = FontWeight.Bold)
-                    Text("Staff: open Staff login on the Home screen and tap \"Load starter menu\".", color = Kasi.Muted)
+                    Text("Staff: go to Account → Staff login and tap \"Load starter menu\".", color = Kasi.Muted)
                 }
             }
         }

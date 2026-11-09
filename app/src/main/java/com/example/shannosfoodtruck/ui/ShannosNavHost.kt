@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -34,6 +35,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.shannosfoodtruck.AppContainer
+import com.example.shannosfoodtruck.ui.customer.AccountScreen
 import com.example.shannosfoodtruck.ui.customer.CartScreen
 import com.example.shannosfoodtruck.ui.customer.CheckoutScreen
 import com.example.shannosfoodtruck.ui.customer.CustomerViewModel
@@ -57,6 +59,7 @@ object Routes {
     const val FEEDBACK = "feedback"
     const val THANKS = "thanks"
     const val STAFF = "staff"
+    const val ACCOUNT = "account"
 }
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
@@ -66,6 +69,7 @@ private val tabs = listOf(
     Tab(Routes.MENU, "Menu", Icons.Filled.Menu),
     Tab(Routes.CART, "Order", Icons.Filled.ShoppingCart),
     Tab(Routes.TRACK, "Track", Icons.Filled.LocationOn),
+    Tab(Routes.ACCOUNT, "Account", Icons.Filled.Person),
 )
 
 @Composable
@@ -130,7 +134,6 @@ fun ShannosNavHost(container: AppContainer) {
                     onPickTruck = { nav.navigate(Routes.TRUCKS) },
                     onTrack = { nav.goToTab(Routes.TRACK) },
                     onAdd = customerVm::add,
-                    onStaff = { nav.navigate(Routes.STAFF) },
                 )
             }
             composable(Routes.TRUCKS) {
@@ -184,6 +187,9 @@ fun ShannosNavHost(container: AppContainer) {
             }
             composable(Routes.THANKS) {
                 ThanksScreen(onHome = { nav.goToTab(Routes.HOME) })
+            }
+            composable(Routes.ACCOUNT) {
+                AccountScreen(customerVm, state, onStaff = { nav.navigate(Routes.STAFF) })
             }
             composable(Routes.STAFF) {
                 val staffVm: StaffViewModel = viewModel(factory = viewModelFactory {

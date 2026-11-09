@@ -3,6 +3,8 @@ package com.example.shannosfoodtruck.ui.customer
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.shannosfoodtruck.data.ActiveOrderStore
+import com.example.shannosfoodtruck.data.AppLog
+import com.example.shannosfoodtruck.data.AppUser
 import com.example.shannosfoodtruck.data.AuthService
 import com.example.shannosfoodtruck.data.Cart
 import com.example.shannosfoodtruck.data.Category
@@ -16,11 +18,16 @@ import com.example.shannosfoodtruck.data.OrderStage
 import com.example.shannosfoodtruck.data.PaymentMethod
 import com.example.shannosfoodtruck.data.StarterData
 import com.example.shannosfoodtruck.data.Truck
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.random.Random
@@ -68,7 +75,14 @@ data class CustomerUiState(
     val activeOrder: Order? = null,
     val loadingMenu: Boolean = true,
     val message: String? = null,
+    /** The person signed in with Google, or null for a guest. */
+    val user: AppUser? = null,
+    val signingIn: Boolean = false,
+    /** Signed-in customer's past and current orders. */
+    val myOrders: List<Order> = emptyList(),
 ) {
+    val isSignedIn: Boolean get() = user != null && !user.isGuest
+
     val selectedTruck: Truck?
         get() = trucks.firstOrNull { it.id == selectedTruckId && it.open } ?: trucks.firstOrNull { it.open }
 
@@ -87,6 +101,7 @@ data class CustomerUiState(
     val hasLiveOrder: Boolean get() = activeOrder != null && activeOrder.stage != OrderStage.COLLECTED
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class CustomerViewModel(
     private val repo: FoodRepository,
     private val auth: AuthService,
@@ -101,8 +116,12 @@ class CustomerViewModel(
     init {
         viewModelScope.launch {
             repo.menu()
-                .catch { e -> _state.update { it.copy(loadingMenu = false, message = "Couldn't load the menu. ${e.message.orEmpty()}") } }
+                .catch { e ->
+                    AppLog.e(TAG, "Menu failed to load", e)
+                    _state.update { it.copy(loadingMenu = false, message = "Couldn't load the menu. ${e.message.orEmpty()}") }
+                }
                 .collect { items ->
+                    AppLog.d(TAG, "Menu loaded: ${items.size} items, ${items.count { !it.available }} sold out")
                     _state.update {
                         it.copy(
                             menu = items,
@@ -118,9 +137,65 @@ class CustomerViewModel(
                 .catch { /* trucks are optional; keep going with none */ }
                 .collect { trucks -> _state.update { it.copy(trucks = trucks) } }
         }
+        // Keep track of who is signed in (Firebase remembers the session between launches)
+        viewModelScope.launch {
+            auth.currentUser.collect { u ->
+                _state.update { s ->
+                    val signedIn = u?.takeUnless { it.isGuest }
+                    val googleName = signedIn?.name
+                    s.copy(
+                        user = signedIn,
+                        // Pre-fill checkout with the Google name if the customer hasn't typed one
+                        form = if (googleName != null && s.form.name.isBlank()) s.form.copy(name = googleName) else s.form,
+                    )
+                }
+            }
+        }
+        // A signed-in customer's order history, live
+        viewModelScope.launch {
+            auth.currentUser
+                .map { u -> u?.takeUnless { it.isGuest }?.uid }
+                .distinctUntilChanged()
+                .flatMapLatest { uid ->
+                    if (uid == null) flowOf(emptyList<Order>())
+                    else repo.ordersForCustomer(uid).catch { e ->
+                        AppLog.w(TAG, "Couldn't load order history", e)
+                        emit(emptyList())
+                    }
+                }
+                .collect { orders -> _state.update { it.copy(myOrders = orders) } }
+        }
         // Pick up an order placed before the app was closed
-        activeOrderStore.get()?.let { watchOrder(it) }
+        activeOrderStore.get()?.let {
+            AppLog.d(TAG, "Resuming tracking for saved order")
+            watchOrder(it)
+        }
     }
+
+    // ---------- account (Google single sign-on) ----------
+
+    fun signInWithGoogle(idToken: String) {
+        if (_state.value.signingIn) return
+        _state.update { it.copy(signingIn = true) }
+        viewModelScope.launch {
+            try {
+                val u = auth.signInWithGoogle(idToken)
+                _state.update { it.copy(signingIn = false, message = "Signed in as ${u.name ?: u.email ?: "you"}") }
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Google sign-in failed", e)
+                _state.update { it.copy(signingIn = false, message = "Sign-in didn't work. ${e.message.orEmpty()}") }
+            }
+        }
+    }
+
+    fun signOut() {
+        auth.signOut()
+        // A tracked order belongs to the account that placed it, so stop tracking it
+        clearActiveOrder()
+        _state.update { it.copy(form = CheckoutForm(), message = "Signed out") }
+    }
+
+    fun showMessage(text: String) = _state.update { it.copy(message = text) }
 
     // ---------- browsing ----------
 
@@ -145,6 +220,7 @@ class CustomerViewModel(
         val s = _state.value
         if (s.placing || s.cart.isEmpty) return
         if (s.form.errors().isNotEmpty()) {
+            AppLog.d(TAG, "Checkout blocked: ${s.form.errors().keys}")
             _state.update { it.copy(showFormErrors = true) }
             return
         }
@@ -183,6 +259,7 @@ class CustomerViewModel(
                 watchOrder(id)
                 onPlaced()
             } catch (e: Exception) {
+                AppLog.e(TAG, "Placing order failed", e)
                 _state.update { it.copy(placing = false, message = "Order didn't go through. ${e.message.orEmpty()}") }
             }
         }
@@ -195,8 +272,9 @@ class CustomerViewModel(
         _state.update { it.copy(activeOrderId = orderId) }
         orderJob = viewModelScope.launch {
             repo.order(orderId)
-                .catch { /* lost access or offline: keep the last known status */ }
+                .catch { e -> AppLog.w(TAG, "Stopped tracking order (keeping last known status)", e) }
                 .collect { order ->
+                    if (order != null) AppLog.d(TAG, "Order ${order.number} is now ${order.stage.name}")
                     if (order == null) {
                         clearActiveOrder()
                     } else {
@@ -211,8 +289,10 @@ class CustomerViewModel(
         viewModelScope.launch {
             try {
                 repo.submitFeedback(Feedback(orderId, rating.coerceIn(1, 5), comment.trim()))
-            } catch (_: Exception) {
+                AppLog.d(TAG, "Feedback sent: $rating stars")
+            } catch (e: Exception) {
                 // Feedback is nice-to-have; never block the customer on it
+                AppLog.w(TAG, "Feedback not saved", e)
             }
             clearActiveOrder()
             onDone()
@@ -226,4 +306,6 @@ class CustomerViewModel(
     }
 
     fun dismissMessage() = _state.update { it.copy(message = null) }
+
+    private companion object { const val TAG = "CustomerVM" }
 }

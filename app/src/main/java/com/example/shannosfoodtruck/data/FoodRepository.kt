@@ -1,6 +1,7 @@
 package com.example.shannosfoodtruck.data
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Everything the app reads or writes goes through here. Screens never talk to
@@ -22,6 +23,9 @@ interface FoodRepository {
     /** One order, updating live as staff move it through the stages. Emits null if it doesn't exist. */
     fun order(orderId: String): Flow<Order?>
 
+    /** A signed-in customer's own orders, newest first. */
+    fun ordersForCustomer(customerUid: String): Flow<List<Order>>
+
     // ---- staff only ----
     fun openOrders(truckId: String): Flow<List<Order>>
     suspend fun setStage(orderId: String, stage: OrderStage)
@@ -33,15 +37,40 @@ interface FoodRepository {
     suspend fun submitFeedback(feedback: Feedback)
 }
 
-/** Who is using the app. Customers are signed in invisibly; staff sign in with email. */
+/** The person signed in, as the app sees them. */
+data class AppUser(
+    val uid: String,
+    val name: String?,
+    val email: String?,
+    /** true = the invisible guest identity every customer gets; false = signed in with Google or email. */
+    val isGuest: Boolean,
+)
+
+/**
+ * Who is using the app.
+ *  - Customers start as an invisible guest so they can order without an account.
+ *  - Anyone can "Continue with Google" (single sign-on). A guest who does this keeps their orders.
+ *  - Staff sign in with Google or email; they must also be listed in the Firestore `staff` collection.
+ *
+ * The session is remembered between app launches, so people stay signed in until they sign out.
+ */
 interface AuthService {
-    /** Makes sure the customer has an (anonymous) identity before ordering. Returns their uid. */
+    /** The current user, updating live on sign-in and sign-out. null = nobody yet. */
+    val currentUser: StateFlow<AppUser?>
+
+    /** Makes sure the customer has an identity (a guest one if needed) before ordering. Returns their uid. */
     suspend fun ensureCustomer(): String
 
-    /** Signs in a staff member. Throws with a readable message on failure or if the account isn't staff. */
+    /** Single sign-on: signs in with a Google ID token from Credential Manager. */
+    suspend fun signInWithGoogle(idToken: String): AppUser
+
+    /** Signs in a staff member by email. Throws with a readable message on failure or if the account isn't staff. */
     suspend fun signInStaff(email: String, password: String)
+
+    /** Staff single sign-on with Google. Throws if the Google account isn't on the staff list. */
+    suspend fun signInStaffWithGoogle(idToken: String)
 
     suspend fun isStaff(): Boolean
 
-    fun signOutStaff()
+    fun signOut()
 }
