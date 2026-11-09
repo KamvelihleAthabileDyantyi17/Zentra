@@ -50,7 +50,6 @@ fun HomeScreen(
     onPickTruck: () -> Unit,
     onTrack: () -> Unit,
     onAdd: (String) -> Unit,
-    onStaff: () -> Unit,
 ) {
     Column(
         Modifier
@@ -170,10 +169,6 @@ fun HomeScreen(
                     }
                 }
             }
-        }
-
-        TextButton(onClick = onStaff, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-            Text("Staff login", color = Kasi.Muted)
         }
     }
 }

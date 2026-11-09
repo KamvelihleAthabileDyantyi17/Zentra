@@ -3,6 +3,7 @@ package com.example.shannosfoodtruck
 import android.app.Application
 import android.content.Context
 import com.example.shannosfoodtruck.data.ActiveOrderStore
+import com.example.shannosfoodtruck.data.AppLog
 import com.example.shannosfoodtruck.data.AuthService
 import com.example.shannosfoodtruck.data.DemoAuthService
 import com.example.shannosfoodtruck.data.DemoRepository
@@ -18,6 +19,7 @@ class ShannosApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        AppLog.i("App", "Started v${BuildConfig.VERSION_NAME} using ${if (BuildConfig.USE_FIREBASE) "Firebase (live data)" else "demo data"}")
     }
 }
 

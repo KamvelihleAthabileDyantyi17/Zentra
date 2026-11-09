@@ -2,6 +2,7 @@ package com.example.shannosfoodtruck.ui.staff
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.shannosfoodtruck.data.AppLog
 import com.example.shannosfoodtruck.data.AuthService
 import com.example.shannosfoodtruck.data.FoodRepository
 import com.example.shannosfoodtruck.data.MenuItem
@@ -54,22 +55,31 @@ class StaffViewModel(
         }
     }
 
-    fun signIn(email: String, password: String) {
+    fun signIn(email: String, password: String) = attemptSignIn { auth.signInStaff(email, password) }
+
+    /** Staff single sign-on with Google. The Google account must be on the staff list. */
+    fun signInWithGoogle(idToken: String) = attemptSignIn { auth.signInStaffWithGoogle(idToken) }
+
+    fun showError(message: String) = _state.update { it.copy(error = message) }
+
+    private fun attemptSignIn(block: suspend () -> Unit) {
         if (_state.value.signingIn) return
         _state.update { it.copy(signingIn = true, error = null) }
         viewModelScope.launch {
             try {
-                auth.signInStaff(email, password)
+                block()
+                AppLog.i(TAG, "Staff dashboard opened")
                 _state.update { it.copy(signingIn = false, signedIn = true) }
                 startListening()
             } catch (e: Exception) {
+                AppLog.w(TAG, "Staff sign-in failed", e)
                 _state.update { it.copy(signingIn = false, error = e.message ?: "Sign-in failed") }
             }
         }
     }
 
     fun signOut() {
-        auth.signOutStaff()
+        auth.signOut()
         _state.update { StaffUiState(signedIn = false) }
         started = false
     }
@@ -81,7 +91,10 @@ class StaffViewModel(
         _state.update { it.copy(truckId = truckId) }
     }
 
-    fun advance(order: Order) = runAction { repo.setStage(order.id, order.stage.next()) }
+    fun advance(order: Order) = runAction {
+        AppLog.d(TAG, "Moving ${order.number} from ${order.stage.name} to ${order.stage.next().name}")
+        repo.setStage(order.id, order.stage.next())
+    }
 
     fun toggleAvailable(item: MenuItem) = runAction { repo.setAvailable(item.id, !item.available) }
 
@@ -95,6 +108,7 @@ class StaffViewModel(
             try {
                 block()
             } catch (e: Exception) {
+                AppLog.e(TAG, "Staff action failed", e)
                 _state.update { it.copy(error = e.message ?: "Something went wrong") }
             } finally {
                 _state.update { it.copy(busy = false) }
@@ -126,5 +140,10 @@ class StaffViewModel(
         }
     }
 
-    private fun reportError(e: Throwable) = _state.update { it.copy(error = e.message ?: "Connection problem") }
+    private fun reportError(e: Throwable) {
+        AppLog.w(TAG, "Live data stopped", e)
+        _state.update { it.copy(error = e.message ?: "Connection problem") }
+    }
+
+    private companion object { const val TAG = "StaffVM" }
 }

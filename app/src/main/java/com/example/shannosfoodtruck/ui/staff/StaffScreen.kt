@@ -49,7 +49,9 @@ import com.example.shannosfoodtruck.data.toRand
 import com.example.shannosfoodtruck.ui.components.BackHeader
 import com.example.shannosfoodtruck.ui.components.Badge
 import com.example.shannosfoodtruck.ui.components.BrandMark
+import com.example.shannosfoodtruck.ui.auth.rememberGoogleSignIn
 import com.example.shannosfoodtruck.ui.components.FoodTile
+import com.example.shannosfoodtruck.ui.components.GoogleButton
 import com.example.shannosfoodtruck.ui.components.KasiTextField
 import com.example.shannosfoodtruck.ui.components.Panel
 import com.example.shannosfoodtruck.ui.components.PillButton
@@ -63,13 +65,16 @@ fun StaffScreen(vm: StaffViewModel, onExit: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     when (state.signedIn) {
         null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Kasi.Ink) }
-        false -> StaffLogin(state, onSignIn = vm::signIn, onBack = onExit)
+        false -> {
+            val googleSignIn = rememberGoogleSignIn(onToken = vm::signInWithGoogle, onError = vm::showError)
+            StaffLogin(state, onSignIn = vm::signIn, onGoogle = googleSignIn, onBack = onExit)
+        }
         true -> StaffDashboard(state, vm, onExit)
     }
 }
 
 @Composable
-private fun StaffLogin(state: StaffUiState, onSignIn: (String, String) -> Unit, onBack: () -> Unit) {
+private fun StaffLogin(state: StaffUiState, onSignIn: (String, String) -> Unit, onGoogle: () -> Unit, onBack: () -> Unit) {
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     Column(
@@ -81,6 +86,8 @@ private fun StaffLogin(state: StaffUiState, onSignIn: (String, String) -> Unit, 
     ) {
         BackHeader("Staff login", onBack)
         Text("For the truck team only. Customers don't need an account to order.", color = Kasi.Muted)
+        GoogleButton(onGoogle, Modifier.fillMaxWidth(), loading = state.signingIn)
+        SectionLabel("or use your staff email")
         KasiTextField("Email", email, { email = it }, keyboardType = KeyboardType.Email)
         OutlinedTextField(
             value = password,

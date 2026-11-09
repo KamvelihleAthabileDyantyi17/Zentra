@@ -133,4 +133,51 @@ class OrderFlowTest {
         customer.add("s1")
         assertEquals(0, customer.state.value.cart.quantityOf("s1"))
     }
+
+    @Test
+    fun googleSignInKeepsGuestOrdersAndShowsHistory() {
+        // Order as a guest first
+        customer.add("k1")
+        customer.updateForm { it.copy(name = "Guest", phone = "0821234567") }
+        customer.placeOrder { }
+        idle()
+        assertFalse(customer.state.value.isSignedIn)
+
+        // Then sign in with Google (demo token): same account, so the order shows in history
+        customer.signInWithGoogle("demo-token")
+        idle()
+        val s = customer.state.value
+        assertTrue(s.isSignedIn)
+        assertEquals("Thando Demo", s.user?.name)
+        assertEquals(1, s.myOrders.size)
+        assertEquals(55.0, s.myOrders.first().total, 0.001)
+    }
+
+    @Test
+    fun signOutEndsSessionAndStopsTracking() {
+        customer.signInWithGoogle("demo-token")
+        idle()
+        customer.add("d1")
+        customer.updateForm { it.copy(phone = "0821234567") } // name pre-filled from Google
+        customer.placeOrder { }
+        idle()
+        assertNotNull(customer.state.value.activeOrder)
+
+        customer.signOut()
+        idle()
+        val s = customer.state.value
+        assertFalse(s.isSignedIn)
+        assertNull(s.activeOrder)
+        assertTrue(s.myOrders.isEmpty())
+        assertNull(store.get())
+    }
+
+    @Test
+    fun staffCanUseGoogleSignIn() {
+        val staff = StaffViewModel(repo, DemoAuthService())
+        idle()
+        staff.signInWithGoogle("demo-token")
+        idle()
+        assertEquals(true, staff.state.value.signedIn)
+    }
 }

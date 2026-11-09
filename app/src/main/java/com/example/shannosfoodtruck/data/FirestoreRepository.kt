@@ -1,11 +1,17 @@
 package com.example.shannosfoodtruck.data
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
@@ -22,6 +28,11 @@ import kotlinx.coroutines.tasks.await
  *   staff/{uid}                        exists = this user may use the staff dashboard
  *
  * Security rules that match this layout are in /firestore.rules at the repo root.
+ *
+ * References:
+ *  - Firebase, "Get realtime updates with Cloud Firestore",
+ *    https://firebase.google.com/docs/firestore/query-data/listen
+ *  - Kotlin, "callbackFlow", https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines.flow/callback-flow.html
  */
 class FirestoreRepository(
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance(),
@@ -39,19 +50,28 @@ class FirestoreRepository(
 
     override suspend fun placeOrder(order: Order): String {
         val ref = ordersCol.document()
+        AppLog.d(TAG, "Placing order ${order.number} (${order.itemCount} items) for ${order.truckId}")
         ref.set(order.toMap()).await()
+        AppLog.d(TAG, "Order ${order.number} saved as ${ref.id}")
         return ref.id
     }
 
     override fun order(orderId: String): Flow<Order?> = callbackFlow {
         val reg = ordersCol.document(orderId).addSnapshotListener { snap, error ->
             if (error != null) {
+                AppLog.w(TAG, "Order listener for $orderId stopped", error)
                 close(error); return@addSnapshotListener
             }
             trySend(snap?.takeIf { it.exists() }?.toOrder())
         }
         awaitClose { reg.remove() }
     }
+
+    override fun ordersForCustomer(customerUid: String): Flow<List<Order>> =
+        listen<Order>(
+            ordersCol.whereEqualTo("customerUid", customerUid).limit(30),
+            sort = { list -> list.sortedByDescending { it.createdAt } },
+        ) { it.toOrder() }
 
     override fun openOrders(truckId: String): Flow<List<Order>> =
         listen<Order>(
@@ -62,10 +82,12 @@ class FirestoreRepository(
         ) { it.toOrder() }
 
     override suspend fun setStage(orderId: String, stage: OrderStage) {
+        AppLog.d(TAG, "Order $orderId -> ${stage.name}")
         ordersCol.document(orderId).update("stage", stage.name).await()
     }
 
     override suspend fun setAvailable(itemId: String, available: Boolean) {
+        AppLog.d(TAG, "Menu item $itemId available=$available")
         menuCol.document(itemId).update("available", available).await()
     }
 
@@ -90,6 +112,7 @@ class FirestoreRepository(
             }
         }
         batch.commit().await()
+        AppLog.i(TAG, "Starter data loaded (only empty collections were filled)")
     }
 
     override suspend fun submitFeedback(feedback: Feedback) {
@@ -104,6 +127,8 @@ class FirestoreRepository(
         ).await()
     }
 
+    private companion object { const val TAG = "FirestoreRepository" }
+
     // ---------- helpers ----------
 
     private fun <T> listen(
@@ -113,9 +138,12 @@ class FirestoreRepository(
     ): Flow<List<T>> = callbackFlow {
         val reg = query.addSnapshotListener { snap, error ->
             if (error != null) {
+                AppLog.w(TAG, "Live query stopped", error)
                 close(error); return@addSnapshotListener
             }
-            trySend(sort(snap?.documents.orEmpty().mapNotNull(map)))
+            val docs = snap?.documents.orEmpty()
+            AppLog.d(TAG, "Live update: ${docs.size} document(s)" + if (snap?.metadata?.isFromCache == true) " (offline cache)" else "")
+            trySend(sort(docs.mapNotNull(map)))
         }
         awaitClose { reg.remove() }
     }
@@ -199,30 +227,106 @@ private fun DocumentSnapshot.toOrder(): Order? {
     )
 }
 
+/**
+ * Firebase Authentication.
+ *
+ * Google single sign-on: the screen gets a Google ID token from Android Credential Manager
+ * (see ui/auth/GoogleSignIn.kt) and passes it here. If the person was ordering as a guest,
+ * we *link* Google to the guest account so their uid (and their orders) stay the same.
+ *
+ * References:
+ *  - Firebase, "Authenticate with Google on Android",
+ *    https://firebase.google.com/docs/auth/android/google-signin
+ *  - Firebase, "Link multiple auth providers to an account",
+ *    https://firebase.google.com/docs/auth/android/account-linking
+ */
 class FirebaseAuthService(
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance(),
 ) : AuthService {
 
+    private val user = MutableStateFlow(auth.currentUser?.toAppUser())
+    override val currentUser: StateFlow<AppUser?> = user.asStateFlow()
+
+    init {
+        // Firebase remembers the session on the phone; this keeps our StateFlow in step with it.
+        auth.addAuthStateListener { a ->
+            val u = a.currentUser?.toAppUser()
+            AppLog.d(TAG, if (u == null) "Signed out" else "Session: ${if (u.isGuest) "guest" else "signed in"} uid=${u.uid.take(6)}…")
+            user.value = u
+        }
+    }
+
     override suspend fun ensureCustomer(): String {
         auth.currentUser?.let { return it.uid }
+        AppLog.d(TAG, "Creating guest session")
         val result = auth.signInAnonymously().await()
         return result.user?.uid ?: error("Could not connect. Check your internet and try again.")
     }
 
+    override suspend fun signInWithGoogle(idToken: String): AppUser {
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        val current = auth.currentUser
+        val linkedOrSignedIn: FirebaseUser? = try {
+            if (current != null && current.isAnonymous) {
+                AppLog.d(TAG, "Linking guest account to Google")
+                current.linkWithCredential(credential).await().user
+            } else {
+                auth.signInWithCredential(credential).await().user
+            }
+        } catch (e: FirebaseAuthUserCollisionException) {
+            // This Google account already has its own Firebase account: just sign in to that one.
+            AppLog.w(TAG, "Google account already exists; signing in to it instead of linking")
+            auth.signInWithCredential(credential).await().user
+        }
+        val signedIn: FirebaseUser = linkedOrSignedIn ?: error("Google sign-in failed")
+        // Linking doesn't always fire the auth listener, so refresh our copy of the user.
+        signedIn.reload().await()
+        val appUser = (auth.currentUser ?: signedIn).toAppUser()
+        user.value = appUser
+        AppLog.i(TAG, "Signed in with Google")
+        return appUser
+    }
+
     override suspend fun signInStaff(email: String, password: String) {
         auth.signInWithEmailAndPassword(email.trim(), password).await()
+        requireStaff()
+        AppLog.i(TAG, "Staff signed in with email")
+    }
+
+    override suspend fun signInStaffWithGoogle(idToken: String) {
+        signInWithGoogle(idToken)
+        requireStaff()
+        AppLog.i(TAG, "Staff signed in with Google")
+    }
+
+    private suspend fun requireStaff() {
         if (!isStaff()) {
+            AppLog.w(TAG, "Signed-in account is not on the staff list")
             auth.signOut()
-            error("This account isn't set up as staff yet.")
+            error("This account isn't set up as staff yet. Ask the owner to add you.")
         }
     }
 
     override suspend fun isStaff(): Boolean {
-        val user = auth.currentUser ?: return false
-        if (user.isAnonymous) return false
-        return runCatching { db.collection("staff").document(user.uid).get().await().exists() }.getOrDefault(false)
+        val u = auth.currentUser ?: return false
+        if (u.isAnonymous) return false
+        return runCatching { db.collection("staff").document(u.uid).get().await().exists() }
+            .onFailure { AppLog.w(TAG, "Couldn't check staff list", it) }
+            .getOrDefault(false)
     }
 
-    override fun signOutStaff() = auth.signOut()
+    override fun signOut() {
+        AppLog.i(TAG, "Signing out")
+        auth.signOut()
+    }
+
+    private fun FirebaseUser.toAppUser() = AppUser(
+        uid = uid,
+        name = displayName?.takeIf { it.isNotBlank() } ?: providerData.firstNotNullOfOrNull { it.displayName?.takeIf(String::isNotBlank) },
+        email = email?.takeIf { it.isNotBlank() } ?: providerData.firstNotNullOfOrNull { it.email?.takeIf(String::isNotBlank) },
+        isGuest = isAnonymous,
+    )
+
+    private companion object { const val TAG = "Auth" }
 }
