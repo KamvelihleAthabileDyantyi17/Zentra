@@ -72,7 +72,7 @@ Website logging: open DevTools (F12) → Console and filter by `Shannos`.
 - Firebase: Cloud Firestore (real-time data) and Authentication (Google SSO, guest, staff email)
 - Android Credential Manager for Google sign-in
 - Logging through one `AppLog` helper (filter Logcat with `tag:Shannos`)
-- Gradle 8.11 · Android Gradle Plugin 8.7 · Kotlin 2.0 · JDK 17 · min SDK 24
+- Gradle 8.11 · Android Gradle Plugin 8.10 · Kotlin 2.0 · JDK 17 · min SDK 24 · target SDK 36 (Android 16, required by Google Play since 31 Aug 2026)
 
 ```
 app/src/main/java/com/example/shannosfoodtruck/
@@ -170,7 +170,7 @@ Levels: `d` normal flow, `i` sign-in/out, `w` recovered problems, `e` failures s
 - `PurchasePlannerTest`: every menu item has a recipe, sales summary, ingredient usage, rounding up to whole packs, subtracting stock, 7-day average, delivery fees, pickup time slots
 - `OrderFlowTest`: full customer → staff → customer journey on demo data, invalid checkout blocked, Google sign-in keeps guest orders, sign-out, account deletion, staff Google login, coming-soon trucks, R50 delivery, remembered details, staff sales report
 
-**Website end-to-end test** (`tests/web/e2e.mjs`, 21 checks): opens the shop and the staff dashboard in two browser tabs, places an order, moves it through every stage, and checks the customer sees each step live; also delivery fees, Sales & buying, sold-out, Google sign-in, settings, account deletion and the phone layout. GitHub Actions saves its screenshots as the **website-test-screenshots** artifact.
+**Website end-to-end test** (`tests/web/e2e.mjs`, 20 checks): opens the shop and the staff dashboard in two browser tabs, places an order, moves it through every stage, and checks the customer sees each step live; also delivery fees, Sales & buying, sold-out, Google sign-in, settings, account deletion and the phone layout. GitHub Actions saves its screenshots as the **website-test-screenshots** artifact.
 
 **Physical phone testing:** see the checklist in [`docs/testing.md`](docs/testing.md).
 
@@ -195,6 +195,7 @@ GitHub Actions also builds the APK on every push. Download it from the workflow 
 - Stock is now tracked per ingredient with units (loaves, kg, slices…).
 - Confirmation only after the order is saved (Task 2 feedback) is now commented in the code on both platforms.
 - End-user guide and physical-phone test checklist added.
+- Targets Android 16 (API 36), which Google Play has required for new apps since 31 August 2026 (Android Gradle Plugin 8.10).
 
 ### v2.3 — Ready for Google Play
 - **New app icon:** the Shannos "S" on sign yellow (adaptive icon plus legacy sizes).

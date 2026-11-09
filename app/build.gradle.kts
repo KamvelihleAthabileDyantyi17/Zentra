@@ -23,13 +23,13 @@ val releaseStoreFile = signingValue("storeFile", "SHANNOS_KEYSTORE_PATH")
 
 android {
     namespace = "com.example.shannosfoodtruck"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         // Must match the package in app/google-services.json
         applicationId = "com.example.shannosfoodtruck"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 5
         versionName = "2.4"
 
