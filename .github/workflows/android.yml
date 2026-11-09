@@ -32,3 +32,43 @@ jobs:
         with:
           name: shannos-food-truck-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+
+      # Signed release build: runs only when the keystore secrets have been added to the repo
+      # (Settings → Secrets and variables → Actions). See docs/play-store/README.md.
+      - name: Restore release keystore
+        id: keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.SHANNOS_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "No keystore secret; skipping signed release build."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/shannos-release.jks"
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build signed release APK and App Bundle
+        if: steps.keystore.outputs.present == 'true'
+        env:
+          SHANNOS_KEYSTORE_PATH: ${{ runner.temp }}/shannos-release.jks
+          SHANNOS_KEYSTORE_PASSWORD: ${{ secrets.SHANNOS_KEYSTORE_PASSWORD }}
+          SHANNOS_KEY_ALIAS: ${{ secrets.SHANNOS_KEY_ALIAS }}
+          SHANNOS_KEY_PASSWORD: ${{ secrets.SHANNOS_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease bundleRelease --stacktrace
+
+      - name: Upload signed release
+        if: steps.keystore.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: shannos-food-truck-release-signed
+          path: |
+            app/build/outputs/apk/release/app-release.apk
+            app/build/outputs/bundle/release/app-release.aab
+
+  website:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check website scripts for syntax errors
+        run: for f in web/js/*.js; do node --input-type=module --check < "$f" && echo "ok $f"; done

@@ -14,6 +14,38 @@ Built by the **Zentra** team.
 - **Design prototype:** see the Shannos Food Truck prototype canvas (customer app + owner dashboard).
 - **Demo video (v1):** https://youtu.be/KhhJptnaOf4
 
+## Website
+
+A website for customers and staff, in `web/`, sharing the **same Firebase project** as the app:
+
+- **Customer site** (`index.html`): menu, cart, checkout, live order tracking, feedback, and **Continue with Google** with *My orders*.
+- **Staff dashboard** (`staff.html`): Google or email login, live order board per truck, sold-out toggles, stock.
+- An order placed on the website shows up instantly on the app's staff dashboard, and the reverse. The same Google account works on both *(innovative feature)*.
+
+| Customer: home | Customer: live tracking | Staff: live orders |
+| --- | --- | --- |
+| ![Website home](docs/screenshots/web/01-home.png) | ![Order tracking](docs/screenshots/web/08-track-cooking.png) | ![Staff dashboard](docs/screenshots/web/07-staff-orders.png) |
+
+More screenshots: [`docs/screenshots/web`](docs/screenshots/web).
+
+### Try the website locally
+The site uses JavaScript modules, so it must be served over http (double-clicking `index.html` won't work):
+```
+cd web
+python -m http.server 8000
+```
+Then open http://localhost:8000. In VS Code, the *Live Server* extension also works.
+
+`web/js/config.js` has `USE_FIREBASE = false` by default, which is **demo mode**: data stays in your browser. Open the shop in one tab and `staff.html` in another (any email and a 6+ character password) to watch orders move live.
+
+### Put the website online (Firebase Hosting, free)
+1. Firebase console → ⚙ Project settings → Your apps → **Add app → Web**. Copy the `appId` into `web/js/config.js` and set `USE_FIREBASE = true`.
+2. Install the Firebase CLI once: `npm install -g firebase-tools`, then `firebase login`.
+3. From the repo root: `firebase deploy --only hosting`. The site goes live at **https://shannos-food-truck.web.app**.
+4. Google sign-in works on that address automatically (Firebase authorises its own domains). For any other domain, add it under Authentication → Settings → Authorized domains.
+
+Website logging: open DevTools (F12) → Console and filter by `Shannos`.
+
 ## What the app does
 
 **Customers** (no account needed):
@@ -79,6 +111,13 @@ In the [Firebase console](https://console.firebase.google.com) for this project:
 
 Old collections from v1 (`menu_items`, sample `orders`/`feedback`) are no longer used and can be deleted.
 
+## Google Play
+
+Release guide, store listing text, data-safety answers and graphics: **[docs/play-store](docs/play-store/README.md)**.
+Release builds are signed from `keystore.properties` (local) or GitHub secrets (CI), and neither is ever committed.
+
+<img src="docs/play-store/feature-graphic-1024x500.png" alt="Play Store feature graphic" width="512">
+
 ## Logging
 
 All logs go through `data/AppLog.kt` with the tag **`Shannos`**. In Android Studio open **Logcat** and type `tag:Shannos` to see the app's story as you use it, for example:
@@ -109,6 +148,21 @@ Covers cart maths, sold-out handling, phone validation, order stages, a full cus
 
 ## Release notes
 
+### v2.3 — Ready for Google Play
+- **New app icon:** the Shannos "S" on sign yellow (adaptive icon plus legacy sizes).
+- **New: Delete my account** in the app and on the website (Google Play requires this for apps with sign-in).
+- **New: privacy policy page** (`web/privacy.html`) covering POPIA rights and account deletion.
+- **Release signing** from a local `keystore.properties` or GitHub secrets; CI builds a **signed APK and App Bundle** when the secrets are set.
+- Play Store listing text, data-safety answers, 512 px icon and feature graphic in `docs/play-store`.
+
+### v2.2 — Website
+- **New: customer website** with the full ordering flow, live tracking, feedback and **Google sign-in**, sharing data with the app *(innovative feature)*.
+- **New: staff web dashboard** with Google or email login, live order board per truck, sold-out toggles and stock.
+- **New: cross-platform live sync.** Order on the website and staff see it in the app, or the reverse.
+- Website demo mode (no Firebase needed), with live updates between browser tabs.
+- Same kasi design as the app; responsive from phone to desktop; accessible labels and keyboard support.
+- Firebase Hosting config (`firebase.json`); CI now also checks the website scripts.
+
 ### v2.1 — Google single sign-on and logging
 - **New: Continue with Google** (SSO) for customers on a new **Account** tab, using Android Credential Manager and Firebase Authentication.
 - **New: guest-to-Google account linking.** Order as a guest, sign in afterwards, and the order stays with you.
@@ -135,7 +189,9 @@ Covers cart maths, sold-out handling, phone validation, order stages, a full cus
 
 ## Still to do
 
-- Website with the same Google sign-in (next)
+- Deploy the website (Firebase Hosting steps above)
+- Change the application ID and upload to Play internal testing ([guide](docs/play-store/README.md))
+- Fill the `[PLACEHOLDERS]` in `web/privacy.html` (date, retention period, contact email)
 - Real truck locations for Trucks 2 and 3 (`StarterData.kt`, marked `TODO(team)`)
 - Delivery fee (currently shown as "[SET BY OWNER]")
 - Real card payments (e.g. a payment gateway); today, card is paid at collection

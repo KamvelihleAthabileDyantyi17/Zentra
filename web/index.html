@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shannos Food Truck – Kasi flavour, no queue</title>
+  <meta name="description" content="Order kotas, amagwinya and cold drinks ahead from Shannos Food Truck and collect them hot.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="demo-banner"></div>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#/">
+        <span class="brand-mark" aria-hidden="true">S</span>
+        <span><span class="brand-name">SHANNOS</span><span class="brand-sub">Food Truck</span></span>
+      </a>
+      <nav class="nav" aria-label="Main">
+        <a href="#/" data-route="home">Home</a>
+        <a href="#/menu" data-route="menu">Menu</a>
+        <a href="#/cart" data-route="cart">Order <span class="count" id="cart-count" hidden>0</span></a>
+        <a href="#/track" data-route="track">Track</a>
+        <a href="#/account" data-route="account" id="account-link">Account</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="app" tabindex="-1">
+    <div class="spinner" role="status" aria-label="Loading"></div>
+  </main>
+
+  <footer class="site-footer">
+    Shannos Food Truck · Parklands · <a href="staff.html">Staff login</a> · <a href="privacy.html">Privacy</a>
+  </footer>
+
+  <script type="module" src="js/customer.js"></script>
+</body>
+</html>

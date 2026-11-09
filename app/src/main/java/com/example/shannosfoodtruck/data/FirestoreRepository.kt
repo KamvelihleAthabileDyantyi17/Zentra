@@ -1,6 +1,7 @@
 package com.example.shannosfoodtruck.data
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.GoogleAuthProvider
@@ -319,6 +320,18 @@ class FirebaseAuthService(
     override fun signOut() {
         AppLog.i(TAG, "Signing out")
         auth.signOut()
+    }
+
+    override suspend fun deleteAccount() {
+        val u = auth.currentUser ?: return
+        try {
+            u.delete().await()
+            AppLog.i(TAG, "Account deleted")
+        } catch (e: FirebaseAuthRecentLoginRequiredException) {
+            // Firebase only allows deleting right after signing in, to protect people
+            AppLog.w(TAG, "Delete needs a fresh sign-in", e)
+            error("For your security, sign out, sign in again, then delete your account.")
+        }
     }
 
     private fun FirebaseUser.toAppUser() = AppUser(

@@ -195,6 +195,20 @@ class CustomerViewModel(
         _state.update { it.copy(form = CheckoutForm(), message = "Signed out") }
     }
 
+    fun deleteAccount(onDeleted: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                auth.deleteAccount()
+                clearActiveOrder()
+                _state.update { it.copy(form = CheckoutForm(), message = "Your account has been deleted") }
+                onDeleted()
+            } catch (e: Exception) {
+                AppLog.e(TAG, "Account deletion failed", e)
+                _state.update { it.copy(message = e.message ?: "Couldn't delete your account. Please try again.") }
+            }
+        }
+    }
+
     fun showMessage(text: String) = _state.update { it.copy(message = text) }
 
     // ---------- browsing ----------

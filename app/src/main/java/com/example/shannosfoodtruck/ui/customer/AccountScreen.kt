@@ -12,11 +12,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -54,6 +59,22 @@ fun AccountScreen(vm: CustomerViewModel, state: CustomerUiState, onStaff: () -> 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val googleSignIn = rememberGoogleSignIn(onToken = vm::signInWithGoogle, onError = vm::showMessage)
+    var confirmDelete by rememberSaveable { mutableStateOf(false) }
+
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("Delete your account?") },
+            text = { Text("This permanently deletes your Shannos login. Your past orders stay with the truck but are no longer linked to you. This can't be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmDelete = false
+                    vm.deleteAccount { scope.launch { clearGoogleCredentialState(context) } }
+                }) { Text("Delete", color = Kasi.Chilli, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Keep my account", color = Kasi.Ink) } },
+        )
+    }
 
     Column(
         Modifier
@@ -105,6 +126,9 @@ fun AccountScreen(vm: CustomerViewModel, state: CustomerUiState, onStaff: () -> 
                     },
                     modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                 ) { Text("Sign out", color = Kasi.Ink) }
+                TextButton(onClick = { confirmDelete = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text("Delete my account", color = Kasi.Chilli)
+                }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
