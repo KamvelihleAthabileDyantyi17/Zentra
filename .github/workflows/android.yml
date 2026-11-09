@@ -32,3 +32,10 @@ jobs:
         with:
           name: shannos-food-truck-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+
+  website:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check website scripts for syntax errors
+        run: for f in web/js/*.js; do node --input-type=module --check < "$f" && echo "ok $f"; done
