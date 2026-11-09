@@ -77,7 +77,7 @@ fun ShannosNavHost(container: AppContainer) {
     val nav = rememberNavController()
     // One customer ViewModel shared by every customer screen (cart, checkout, tracking all need the same data)
     val customerVm: CustomerViewModel = viewModel(factory = viewModelFactory {
-        initializer { CustomerViewModel(container.repository, container.auth, container.activeOrderStore) }
+        initializer { CustomerViewModel(container.repository, container.auth, container.activeOrderStore, container.settings) }
     })
     val state by customerVm.state.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
@@ -189,7 +189,7 @@ fun ShannosNavHost(container: AppContainer) {
                 ThanksScreen(onHome = { nav.goToTab(Routes.HOME) })
             }
             composable(Routes.ACCOUNT) {
-                AccountScreen(customerVm, state, onStaff = { nav.navigate(Routes.STAFF) })
+                AccountScreen(customerVm, state, onStaff = { nav.navigate(Routes.STAFF) }, onPickTruck = { nav.navigate(Routes.TRUCKS) })
             }
             composable(Routes.STAFF) {
                 val staffVm: StaffViewModel = viewModel(factory = viewModelFactory {

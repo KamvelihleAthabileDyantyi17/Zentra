@@ -17,18 +17,24 @@ export const STARTER_MENU = [
 
 export const FAVOURITE_IDS = ["k1", "a1", "d3"];
 
-// TODO(team): real locations for trucks 2 and 3
 export const STARTER_TRUCKS = [
-  { id: "truck1", name: "Truck 1", spot: "Parklands Main Stand", open: true },
-  { id: "truck2", name: "Truck 2", spot: "[LOCATION]", open: true },
-  { id: "truck3", name: "Truck 3", spot: "[LOCATION]", open: false },
+  {
+    id: "truck1", name: "Truck 1", spot: "Cnr Sandown Rd & Discovery Dr, Rivergate", open: true, comingSoon: false,
+    address: "Corner of Sandown Road and Discovery Drive, Rivergate, Cape Farms, Cape Town, 7441",
+  },
+  // Locations for trucks 2 and 3 are still being decided
+  { id: "truck2", name: "Truck 2", spot: "Location coming soon", open: false, comingSoon: true, address: "" },
+  { id: "truck3", name: "Truck 3", spot: "Location coming soon", open: false, comingSoon: true, address: "" },
 ];
 
+// Starting stock per truck, in each ingredient's unit (see recipes.js). Example numbers.
 export const STARTER_STOCK = [
-  { id: "bread", name: "Bread loaves", onHand: 14, reorderAt: 10 },
-  { id: "dough", name: "Vetkoek dough (batches)", onHand: 3, reorderAt: 5 },
-  { id: "russians", name: "Russian sausages (packs)", onHand: 6, reorderAt: 4 },
-  { id: "cheese", name: "Cheese slices (packs)", onHand: 2, reorderAt: 4 },
-  { id: "potatoes", name: "Potatoes (kg)", onHand: 0, reorderAt: 8 },
-  { id: "drinks", name: "Cold drinks (crates)", onHand: 9, reorderAt: 3 },
+  { id: "bread", name: "Bread", onHand: 6, reorderAt: 8, unit: "loaf" },
+  { id: "potatoes", name: "Potatoes", onHand: 10, reorderAt: 7, unit: "kg" },
+  { id: "russians", name: "Smoked russians", onHand: 1.5, reorderAt: 1, unit: "kg" },
+  { id: "cheese", name: "Cheese slices", onHand: 20, reorderAt: 30, unit: "slice" },
+  { id: "oil", name: "Sunflower oil", onHand: 3, reorderAt: 2, unit: "L" },
+  { id: "flour", name: "Cake flour", onHand: 0, reorderAt: 2.5, unit: "kg" },
+  { id: "rolls", name: "Hotdog rolls", onHand: 12, reorderAt: 12, unit: "roll" },
+  { id: "colddrink", name: "Cold drinks", onHand: 24, reorderAt: 12, unit: "can" },
 ];

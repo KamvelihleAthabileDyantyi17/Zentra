@@ -10,6 +10,7 @@
 
 import { getBackend } from "./backend.js";
 import { FAVOURITE_IDS } from "./starter-data.js";
+import { ASAP, DELIVERY_AREAS, deliveryArea, nowMinutes, pickupSlots, timeLabel } from "./recipes.js";
 import {
   CATEGORIES, STAGES, esc, isValidSaPhone, log, nextStage, orderTotal, rand, stageIndex, stageInfo, toast,
 } from "./util.js";
@@ -22,6 +23,17 @@ const STAR = '<svg viewBox="0 0 24 24" stroke-linejoin="round" aria-hidden="true
 
 // ------------------------------------------------------------------ state
 
+// Settings (Account → Settings), kept in this browser
+const settings = {
+  get remember() { return localStorage.getItem("shannos-remember") !== "false"; },
+  set remember(v) {
+    localStorage.setItem("shannos-remember", String(v));
+    if (!v) localStorage.removeItem("shannos-details");
+  },
+  get details() { try { return JSON.parse(localStorage.getItem("shannos-details")) || {}; } catch (_) { return {}; } },
+  saveDetails(name, phone) { if (this.remember) localStorage.setItem("shannos-details", JSON.stringify({ name, phone })); },
+};
+
 const state = {
   menu: [],
   menuLoaded: false,
@@ -29,7 +41,11 @@ const state = {
   truckId: localStorage.getItem("shannos-truck"),
   category: null,
   cart: JSON.parse(sessionStorage.getItem("shannos-cart") || "{}"), // { itemId: quantity }
-  form: { name: "", phone: "", fulfilment: "PICKUP", address: "", payment: "CARD", note: "" },
+  form: {
+    name: settings.remember ? settings.details.name || "" : "",
+    phone: settings.remember ? settings.details.phone || "" : "",
+    fulfilment: "PICKUP", address: "", deliveryArea: "PARKLANDS", pickupTime: ASAP, payment: "CARD", note: "",
+  },
   showErrors: false,
   placing: false,
   activeOrderId: localStorage.getItem("shannos-active-order"),
@@ -40,13 +56,16 @@ const state = {
   signingIn: false,
 };
 
+const trading = (t) => t.open && !t.comingSoon;
 const selectedTruck = () =>
-  state.trucks.find((t) => t.id === state.truckId && t.open) || state.trucks.find((t) => t.open) || null;
+  state.trucks.find((t) => t.id === state.truckId && trading(t)) || state.trucks.find(trading) || null;
 const itemById = (id) => state.menu.find((m) => m.id === id);
 const cartLines = () =>
   state.menu.filter((m) => state.cart[m.id] > 0).map((m) => ({ itemId: m.id, name: m.name, quantity: state.cart[m.id], unitPrice: m.price }));
 const cartCount = () => Object.values(state.cart).reduce((a, b) => a + b, 0);
 const cartTotal = () => cartLines().reduce((s, l) => s + l.quantity * l.unitPrice, 0);
+const deliveryFee = () => (state.form.fulfilment === "DELIVERY" ? deliveryArea(state.form.deliveryArea).fee : 0);
+const checkoutTotal = () => cartTotal() + deliveryFee();
 
 function saveCart() {
   sessionStorage.setItem("shannos-cart", JSON.stringify(state.cart));
@@ -195,14 +214,15 @@ function trucksScreen() {
   return `
     <div class="narrow">
       <h1>Choose your truck</h1>
-      <p class="muted" style="margin:0">Your order goes to the truck you pick. Collect it there.</p>
+      <p class="muted" style="margin:0">Your order goes to the truck you pick. Collect it there. More trucks are coming soon.</p>
       ${state.trucks.length ? "" : `<p class="muted">No trucks set up yet.</p>`}
       <div class="stack" role="radiogroup" aria-label="Trucks">
         ${state.trucks.map((t) => `
-          <button class="choice spread" role="radio" aria-checked="${t.id === current?.id}" data-action="truck" data-id="${esc(t.id)}" ${t.open ? "" : "disabled"} style="text-align:left;padding:16px">
+          <button class="choice spread" role="radio" aria-checked="${t.id === current?.id}" data-action="truck" data-id="${esc(t.id)}" ${trading(t) ? "" : "disabled"} style="text-align:left;padding:16px">
             <span class="row"><span class="brand-mark" style="background:var(--ink);color:var(--sign)">${esc(t.name.replace(/\D/g, "") || "S")}</span>
-              <span><strong>${esc(t.name)}</strong><br><span class="muted small">${esc(t.spot)}</span></span></span>
-            <span class="badge ${t.open ? "badge-green" : "badge-grey"}">${t.open ? "Open" : "Closed"}</span>
+              <span><strong>${esc(t.name)}</strong><br><span class="muted small">${esc(t.spot)}</span>
+              ${t.address ? `<br><span class="small" style="color:var(--faint)">${esc(t.address)}</span>` : ""}</span></span>
+            <span class="badge ${t.comingSoon ? "badge-amber" : t.open ? "badge-green" : "badge-grey"}">${t.comingSoon ? "Coming soon" : t.open ? "Open" : "Closed"}</span>
           </button>`).join("")}
       </div>
     </div>`;
@@ -288,8 +308,18 @@ function checkoutScreen() {
         </div>
         ${f.fulfilment === "PICKUP"
           ? `<div class="panel">${truck ? `Collect from <strong>${esc(truck.name)}</strong>, ${esc(truck.spot)}` : "No truck is open right now"}</div>`
-          : `${field("Delivery address", "address", { placeholder: "Street, area", autocomplete: "street-address" })}
-             <span class="muted small">Delivery fee: [SET BY OWNER]</span>`}
+          : `<div class="choices" role="radiogroup" aria-label="Delivery area">
+               ${DELIVERY_AREAS.map((a) => `<button class="choice" role="radio" aria-checked="${f.deliveryArea === a.id}" data-action="area" data-id="${a.id}">${a.label}<br><span class="small">${a.fee ? rand(a.fee) : "Free"}</span></button>`).join("")}
+             </div>
+             ${field("Delivery address", "address", { placeholder: "Street, area", autocomplete: "street-address" })}`}
+      </div>
+
+      <div class="stack">
+        <span class="label">${f.fulfilment === "PICKUP" ? "When will you collect?" : "When should we deliver?"}</span>
+        <div class="chips" role="radiogroup" aria-label="Time">
+          ${[ASAP, ...pickupSlots(nowMinutes())].map((t) => `<button class="chip" role="radio" aria-pressed="${f.pickupTime === t}" aria-checked="${f.pickupTime === t}" data-action="time" data-id="${t}">${t === ASAP ? "ASAP" : t}</button>`).join("")}
+        </div>
+        ${f.pickupTime === ASAP ? `<span class="muted small">Ready in about 10 to 15 minutes.</span>` : ""}
       </div>
 
       <div class="stack">
@@ -302,12 +332,16 @@ function checkoutScreen() {
         <span class="label">Pay with</span>
         <div class="choices" role="radiogroup" aria-label="Payment">
           <button class="choice" role="radio" aria-checked="${f.payment === "CARD"}" data-action="payment" data-id="CARD">Card</button>
-          <button class="choice" role="radio" aria-checked="${f.payment === "CASH"}" data-action="payment" data-id="CASH">Cash at truck</button>
+          <button class="choice" role="radio" aria-checked="${f.payment === "CASH"}" data-action="payment" data-id="CASH">Cash</button>
         </div>
-        ${f.payment === "CARD" ? `<span class="muted small">Card payment is a placeholder for now: the truck takes card at collection.</span>` : ""}
+        <span class="muted small">${f.payment === "CARD" ? "Pay by card" : "Pay cash"} when you collect, or when your order is delivered.</span>
       </div>
 
-      <div class="panel spread"><strong>${cartCount()} ${cartCount() === 1 ? "item" : "items"}</strong><strong>${rand(cartTotal())}</strong></div>
+      <div class="panel">
+        <div class="spread"><span>${cartCount()} ${cartCount() === 1 ? "item" : "items"}</span><span>${rand(cartTotal())}</span></div>
+        ${f.fulfilment === "DELIVERY" ? `<div class="spread" style="padding-top:6px"><span>Delivery (${esc(deliveryArea(f.deliveryArea).label)})</span><span>${deliveryFee() ? rand(deliveryFee()) : "Free"}</span></div>` : ""}
+        <div class="total" style="border-top:1px solid var(--divider);margin-top:10px"><span>Total</span><span>${rand(checkoutTotal())}</span></div>
+      </div>
       <button class="btn btn-red btn-block" data-action="place" ${state.placing || !truck ? "disabled" : ""}>${state.placing ? "Placing order…" : "Place order"}</button>
     </div>`;
 }
@@ -337,8 +371,9 @@ function trackScreen() {
         </ol>
       </div>
       <div class="panel">
-        <span class="label">${order.fulfilment === "PICKUP" ? "Collect at truck" : "Delivery"} · ${order.payment === "CARD" ? "Card" : "Cash at truck"}</span>
+        <span class="label">${order.fulfilment === "PICKUP" ? "Collect at truck" : "Delivery"} · ${esc(timeLabel(order.pickupTime))} · ${order.payment === "CARD" ? "Card" : "Cash"}</span>
         ${order.lines.map((l) => `<div class="spread" style="padding-top:8px"><span>${l.quantity} × ${esc(l.name)}</span><span>${rand(l.quantity * l.unitPrice)}</span></div>`).join("")}
+        ${order.fulfilment === "DELIVERY" ? `<div class="spread" style="padding-top:8px"><span>Delivery (${esc(deliveryArea(order.deliveryArea)?.label || "")})</span><span>${order.deliveryFee ? rand(order.deliveryFee) : "Free"}</span></div>` : ""}
         <div class="total" style="border-top:1px solid var(--divider);margin-top:10px"><span>Total</span><span>${rand(orderTotal(order))}</span></div>
       </div>
       ${demo && order.stage !== "COLLECTED" ? `<button class="btn btn-ghost" data-action="demo-advance" style="border-style:dashed">Demo: move to next step (or use the staff page)</button>` : ""}
@@ -379,7 +414,23 @@ function accountScreen() {
           <button class="btn btn-google btn-block" data-action="google" ${state.signingIn ? "disabled" : ""}><span class="g">G</span> ${state.signingIn ? "Signing in…" : "Continue with Google"}</button>
           <span class="muted small">No account needed to order. You can always continue as a guest.</span>
         </div>
-        <p class="muted small">Work at the truck? <a href="staff.html">Staff login</a> · <a href="privacy.html">Privacy policy</a></p>
+            <div class="stack">
+        <span class="label">Settings</span>
+        <div class="panel" style="padding:4px 0">
+          <a class="line" href="#/trucks" style="padding:12px 18px;text-decoration:none">
+            <span class="grow"><strong>My truck</strong><br><span class="muted small">${selectedTruck() ? esc(selectedTruck().name + " · " + selectedTruck().spot) : "No truck open"}</span></span>
+            <span style="color:var(--chilli);font-weight:700">Change</span></a>
+          <button class="line" role="switch" aria-checked="${settings.remember}" data-action="remember" style="padding:12px 18px;width:100%;border:none;border-bottom:1px solid var(--divider);background:none;text-align:left;cursor:pointer">
+            <span class="grow"><strong>Remember my details</strong><br><span class="muted small">Fill in my name and number at checkout</span></span>
+            <span class="badge ${settings.remember ? "badge-green" : "badge-grey"}">${settings.remember ? "On" : "Off"}</span></button>
+          <a class="line" href="privacy.html" style="padding:12px 18px;text-decoration:none">
+            <span class="grow"><strong>Privacy policy</strong><br><span class="muted small">What we collect and how to delete it</span></span>
+            <span style="color:var(--chilli);font-weight:700">Open</span></a>
+          <a class="line" href="staff.html" style="padding:12px 18px;text-decoration:none">
+            <span class="grow"><strong>Staff login</strong><br><span class="muted small">For the truck team</span></span>
+            <span style="color:var(--chilli);font-weight:700">Open</span></a>
+        </div>
+      </div>
       </div>`;
   }
   return `
@@ -405,7 +456,24 @@ function accountScreen() {
           </div>`).join("")}</div>`
         : `<p class="muted" style="margin:0">No orders yet. Your next order will show up here.</p>`}
       </div>
-      <p class="muted small">Work at the truck? <a href="staff.html">Staff login</a> · <a href="privacy.html">Privacy policy</a></p>
+
+      <div class="stack">
+        <span class="label">Settings</span>
+        <div class="panel" style="padding:4px 0">
+          <a class="line" href="#/trucks" style="padding:12px 18px;text-decoration:none">
+            <span class="grow"><strong>My truck</strong><br><span class="muted small">${selectedTruck() ? esc(selectedTruck().name + " · " + selectedTruck().spot) : "No truck open"}</span></span>
+            <span style="color:var(--chilli);font-weight:700">Change</span></a>
+          <button class="line" role="switch" aria-checked="${settings.remember}" data-action="remember" style="padding:12px 18px;width:100%;border:none;border-bottom:1px solid var(--divider);background:none;text-align:left;cursor:pointer">
+            <span class="grow"><strong>Remember my details</strong><br><span class="muted small">Fill in my name and number at checkout</span></span>
+            <span class="badge ${settings.remember ? "badge-green" : "badge-grey"}">${settings.remember ? "On" : "Off"}</span></button>
+          <a class="line" href="privacy.html" style="padding:12px 18px;text-decoration:none">
+            <span class="grow"><strong>Privacy policy</strong><br><span class="muted small">What we collect and how to delete it</span></span>
+            <span style="color:var(--chilli);font-weight:700">Open</span></a>
+          <a class="line" href="staff.html" style="padding:12px 18px;text-decoration:none">
+            <span class="grow"><strong>Staff login</strong><br><span class="muted small">For the truck team</span></span>
+            <span style="color:var(--chilli);font-weight:700">Open</span></a>
+        </div>
+      </div>
     </div>`;
 }
 
@@ -468,6 +536,10 @@ async function placeOrder() {
   }
   const truck = selectedTruck();
   if (!truck) return toast("No truck is open right now");
+  if (state.form.pickupTime !== ASAP && !pickupSlots(nowMinutes()).includes(state.form.pickupTime)) {
+    state.form.pickupTime = ASAP; lastRoute = null; render();
+    return toast("That time has passed. Please choose another time.");
+  }
   state.placing = true; lastRoute = null; render();
   try {
     const uid = await auth.ensureCustomer();
@@ -482,15 +554,21 @@ async function placeOrder() {
       phone: f.phone.trim(),
       fulfilment: f.fulfilment,
       address: f.fulfilment === "DELIVERY" ? f.address.trim() : "",
+      deliveryArea: f.fulfilment === "DELIVERY" ? f.deliveryArea : null,
+      deliveryFee: deliveryFee(),
+      pickupTime: f.pickupTime,
       payment: f.payment,
       note: f.note.trim(),
       lines,
-      total: lines.reduce((s, l) => s + l.quantity * l.unitPrice, 0),
+      total: checkoutTotal(),
       stage: "RECEIVED",
       createdAt: Date.now(),
     };
+    // Task 2 feedback: only confirm and clear the cart AFTER the order is saved
     const id = await data.placeOrder(order);
     log.d("Customer", `Order ${order.number} placed`);
+    settings.saveDetails(order.customerName, order.phone);
+    state.form.pickupTime = ASAP;
     state.cart = {}; saveCart();
     state.form.note = "";
     state.showErrors = false;
@@ -515,9 +593,15 @@ document.addEventListener("click", async (e) => {
     case "category": state.category = id || null; render(); break;
     case "truck":
       state.truckId = id; localStorage.setItem("shannos-truck", id);
-      location.hash = "#/"; break;
+      if (history.length > 1) history.back(); else location.hash = "#/"; break;
     case "fulfilment": state.form.fulfilment = id; lastRoute = null; render(); break;
     case "payment": state.form.payment = id; lastRoute = null; render(); break;
+    case "area": state.form.deliveryArea = id; lastRoute = null; render(); break;
+    case "time": state.form.pickupTime = id; lastRoute = null; render(); break;
+    case "remember":
+      settings.remember = !settings.remember;
+      log.d("Customer", "Remember details: " + settings.remember);
+      lastRoute = null; render(); break;
     case "place": await placeOrder(); break;
     case "google": await signInWithGoogle(); break;
     case "sign-out":

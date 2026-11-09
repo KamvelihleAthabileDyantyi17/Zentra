@@ -7,6 +7,9 @@ import com.example.shannosfoodtruck.data.AuthService
 import com.example.shannosfoodtruck.data.FoodRepository
 import com.example.shannosfoodtruck.data.MenuItem
 import com.example.shannosfoodtruck.data.Order
+import com.example.shannosfoodtruck.data.PurchaseLine
+import com.example.shannosfoodtruck.data.PurchasePlanner
+import com.example.shannosfoodtruck.data.SalesSummary
 import com.example.shannosfoodtruck.data.StockItem
 import com.example.shannosfoodtruck.data.Truck
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -14,12 +17,19 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class StaffSection(val label: String) { ORDERS("Orders"), MENU("Menu"), STOCK("Stock") }
+enum class StaffSection(val label: String) { ORDERS("Orders"), REPORT("Sales & buying"), MENU("Menu"), STOCK("Stock") }
+
+/** Which orders the sales report and purchase recommendation are based on. */
+enum class ReportBasis(val label: String, val days: Int) {
+    TODAY("Today", 1),
+    WEEK("Typical day (last 7 days)", 7),
+}
 
 data class StaffUiState(
     /** null while we check whether this phone is already signed in as staff. */
@@ -33,7 +43,14 @@ data class StaffUiState(
     val menu: List<MenuItem> = emptyList(),
     val stock: List<StockItem> = emptyList(),
     val busy: Boolean = false,
-)
+    val reportBasis: ReportBasis = ReportBasis.TODAY,
+    /** All orders (any stage) for the report period. */
+    val reportOrders: List<Order> = emptyList(),
+) {
+    val sales: SalesSummary get() = PurchasePlanner.summary(reportOrders)
+    val purchasePlan: List<PurchaseLine>
+        get() = PurchasePlanner.plan(reportOrders, reportBasis.days, stock.associate { it.id to it.onHand })
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class StaffViewModel(
@@ -45,6 +62,7 @@ class StaffViewModel(
     val state: StateFlow<StaffUiState> = _state.asStateFlow()
 
     private val selectedTruck = MutableStateFlow<String?>(null)
+    private val basis = MutableStateFlow(ReportBasis.TODAY)
     private var started = false
 
     init {
@@ -85,6 +103,11 @@ class StaffViewModel(
     }
 
     fun selectSection(section: StaffSection) = _state.update { it.copy(section = section) }
+
+    fun selectBasis(reportBasis: ReportBasis) {
+        basis.value = reportBasis
+        _state.update { it.copy(reportBasis = reportBasis) }
+    }
 
     fun selectTruck(truckId: String) {
         selectedTruck.value = truckId
@@ -134,6 +157,15 @@ class StaffViewModel(
                 .collect { orders -> _state.update { it.copy(orders = orders) } }
         }
         viewModelScope.launch {
+            // Re-query whenever the truck or the report period changes
+            combine(selectedTruck.filterNotNull(), basis) { id, b -> id to b }
+                .flatMapLatest { (id, b) -> repo.ordersSince(id, startOfPeriod(b)).catch { e -> reportError(e) } }
+                .collect { orders ->
+                    AppLog.d(TAG, "Report: ${orders.size} orders")
+                    _state.update { it.copy(reportOrders = orders) }
+                }
+        }
+        viewModelScope.launch {
             selectedTruck.filterNotNull()
                 .flatMapLatest { id -> repo.stock(id).catch { e -> reportError(e) } }
                 .collect { stock -> _state.update { it.copy(stock = stock) } }
@@ -143,6 +175,17 @@ class StaffViewModel(
     private fun reportError(e: Throwable) {
         AppLog.w(TAG, "Live data stopped", e)
         _state.update { it.copy(error = e.message ?: "Connection problem") }
+    }
+
+    /** Midnight today, or midnight six days ago for a 7-day window. Uses Calendar so it works on API 24. */
+    private fun startOfPeriod(b: ReportBasis): Long {
+        val c = java.util.Calendar.getInstance()
+        c.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        c.set(java.util.Calendar.MINUTE, 0)
+        c.set(java.util.Calendar.SECOND, 0)
+        c.set(java.util.Calendar.MILLISECOND, 0)
+        c.add(java.util.Calendar.DAY_OF_YEAR, -(b.days - 1))
+        return c.timeInMillis
     }
 
     private companion object { const val TAG = "StaffVM" }

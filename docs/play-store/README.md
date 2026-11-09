@@ -7,7 +7,7 @@ a signed APK, store screenshots, and a screenshot of the app uploaded in Google 
 | --- | --- |
 | App icon (adaptive, plus `play-icon-512.png`) | Create the upload keystore (step 2) |
 | Feature graphic `feature-graphic-1024x500.png` | Take phone screenshots (step 4) |
-| Store listing text (below) | Fill the `[PLACEHOLDERS]` in `web/privacy.html` |
+| Store listing text (below) | Fill in the owner details in `web/privacy.html` |
 | Privacy policy page `web/privacy.html` | Create the Play developer account and upload (steps 5–7) |
 | In-app and web **Delete my account** (Play requirement) | |
 | Release signing in Gradle + signed build in GitHub Actions | |
@@ -139,7 +139,7 @@ Play Console → **Create app**
 
 1. Testing → **Internal testing** → Create new release.
 2. Choose **Use Google-generated key** (Play App Signing) when asked.
-3. Upload `app-release.aab`. Release name: `2.3`. Paste the release notes below.
+3. Upload `app-release.aab`. Release name: `2.4`. Paste the release notes below.
 4. Save → Review release → **Start rollout to Internal testing**.
 5. Add testers (your team's Gmail addresses) and share the opt-in link.
 6. **Screenshot** the release page showing version 2.3 uploaded. That's the rubric evidence.
@@ -183,12 +183,13 @@ Staff sign in to a live order board for each truck, mark items sold out instantl
 Lekker food, no queue. See you at the truck.
 ```
 
-**Release notes for 2.3** (500 max):
+**Release notes for 2.4** (500 max):
 ```
 • New look: the full app rebuilt in the Shannos kasi style
 • Live order tracking, from received to ready to collect
 • Continue with Google, with your order history on app and website
 • Staff dashboard: live orders per truck, sold-out items, stock
+• Choose a pickup time, or free delivery in Parklands
 • Delete your account any time from the Account tab
 ```
 

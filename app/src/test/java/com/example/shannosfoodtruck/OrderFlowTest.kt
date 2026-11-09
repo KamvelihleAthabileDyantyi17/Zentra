@@ -2,7 +2,10 @@ package com.example.shannosfoodtruck
 
 import com.example.shannosfoodtruck.data.DemoAuthService
 import com.example.shannosfoodtruck.data.DemoRepository
+import com.example.shannosfoodtruck.data.DeliveryArea
+import com.example.shannosfoodtruck.data.Fulfilment
 import com.example.shannosfoodtruck.data.InMemoryActiveOrderStore
+import com.example.shannosfoodtruck.data.InMemoryAppSettings
 import com.example.shannosfoodtruck.data.OrderStage
 import com.example.shannosfoodtruck.ui.customer.CustomerViewModel
 import com.example.shannosfoodtruck.ui.staff.StaffViewModel
@@ -192,5 +195,54 @@ class OrderFlowTest {
         assertTrue(deleted)
         assertFalse(customer.state.value.isSignedIn)
         assertEquals("", customer.state.value.form.name)
+    }
+
+    @Test
+    fun comingSoonTrucksCannotBeChosen() {
+        customer.selectTruck("truck2") // coming soon
+        idle()
+        assertEquals("truck1", customer.state.value.selectedTruck?.id)
+    }
+
+    @Test
+    fun deliveryOutsideParklandsAddsR50() {
+        customer.add("k1")
+        customer.updateForm { it.copy(name = "Thando", phone = "0821234567", fulfilment = Fulfilment.DELIVERY, address = "1 Main Rd", deliveryArea = DeliveryArea.OUTSIDE) }
+        assertEquals(105.0, customer.state.value.checkoutTotal, 0.001)
+        customer.placeOrder { }
+        idle()
+        assertEquals(105.0, customer.state.value.activeOrder!!.total, 0.001)
+        assertEquals(DeliveryArea.OUTSIDE, customer.state.value.activeOrder!!.deliveryArea)
+    }
+
+    @Test
+    fun rememberDetailsPrefillsNextTimeAndCanBeTurnedOff() {
+        val settings = InMemoryAppSettings()
+        val first = CustomerViewModel(repo, DemoAuthService(), InMemoryActiveOrderStore(), settings)
+        idle()
+        first.add("d4")
+        first.updateForm { it.copy(name = "Lindiwe", phone = "082 123 4567") }
+        first.placeOrder { }
+        idle()
+        assertEquals("Lindiwe", settings.savedName)
+
+        val next = CustomerViewModel(repo, DemoAuthService(), InMemoryActiveOrderStore(), settings)
+        assertEquals("Lindiwe", next.state.value.form.name)
+
+        next.setRememberDetails(false)
+        assertEquals("", settings.savedName)
+        assertFalse(CustomerViewModel(repo, DemoAuthService(), InMemoryActiveOrderStore(), settings).state.value.form.name.isNotEmpty())
+    }
+
+    @Test
+    fun staffReportCountsTodaysOrders() {
+        customer.add("k1"); customer.add("k1")
+        customer.updateForm { it.copy(name = "A", phone = "0821234567") }
+        customer.placeOrder { }
+        idle()
+        val staff = signedInStaff()
+        assertEquals(1, staff.state.value.sales.orderCount)
+        assertEquals(110.0, staff.state.value.sales.revenue, 0.001)
+        assertTrue(staff.state.value.purchasePlan.any { it.ingredient.id == "bread" })
     }
 }

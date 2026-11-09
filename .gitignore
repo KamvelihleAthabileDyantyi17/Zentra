@@ -14,3 +14,6 @@ local.properties
 keystore.properties
 *.jks
 *.keystore
+
+# Website test dependencies
+tests/web/node_modules/

@@ -70,5 +70,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Check website scripts for syntax errors
         run: for f in web/js/*.js; do node --input-type=module --check < "$f" && echo "ok $f"; done
+
+      - name: Install test browser
+        working-directory: tests/web
+        run: npm install && npx playwright install --with-deps chromium
+
+      - name: End-to-end test (customer + staff in demo mode)
+        working-directory: tests/web
+        env:
+          SHOTS_DIR: ${{ github.workspace }}/web-test-screenshots
+        run: |
+          (cd ../../web && python3 -m http.server 8765 >/dev/null 2>&1 &)
+          sleep 2
+          npm test
+
+      - name: Upload test screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: website-test-screenshots
+          path: web-test-screenshots

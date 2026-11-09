@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.Context
 import com.example.shannosfoodtruck.data.ActiveOrderStore
 import com.example.shannosfoodtruck.data.AppLog
+import com.example.shannosfoodtruck.data.AppSettings
+import com.example.shannosfoodtruck.data.PrefsAppSettings
 import com.example.shannosfoodtruck.data.AuthService
 import com.example.shannosfoodtruck.data.DemoAuthService
 import com.example.shannosfoodtruck.data.DemoRepository
@@ -32,4 +34,6 @@ class AppContainer(context: Context) {
         if (BuildConfig.USE_FIREBASE) FirebaseAuthService() else DemoAuthService()
 
     val activeOrderStore: ActiveOrderStore = PrefsActiveOrderStore(context)
+
+    val settings: AppSettings = PrefsAppSettings(context)
 }

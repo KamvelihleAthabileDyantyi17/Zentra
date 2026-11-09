@@ -24,19 +24,25 @@ object StarterData {
     /** Ids of the items shown under "Kasi favourites" on the home screen. */
     val favouriteIds = listOf("k1", "a1", "d3")
 
-    // TODO(team): replace [LOCATION] with the real spots for trucks 2 and 3.
     val trucks = listOf(
-        Truck("truck1", "Truck 1", "Parklands Main Stand", open = true),
-        Truck("truck2", "Truck 2", "[LOCATION]", open = true),
-        Truck("truck3", "Truck 3", "[LOCATION]", open = false),
+        Truck(
+            "truck1", "Truck 1", "Cnr Sandown Rd & Discovery Dr, Rivergate", open = true,
+            address = "Corner of Sandown Road and Discovery Drive, Rivergate, Cape Farms, Cape Town, 7441",
+        ),
+        // Locations for trucks 2 and 3 are still being decided
+        Truck("truck2", "Truck 2", "Location coming soon", open = false, comingSoon = true),
+        Truck("truck3", "Truck 3", "Location coming soon", open = false, comingSoon = true),
     )
 
+    /** Starting stock per truck, in each ingredient's unit (see Recipes.kt). Example numbers. */
     val stock = listOf(
-        StockItem("bread", "Bread loaves", 14, 10),
-        StockItem("dough", "Vetkoek dough (batches)", 3, 5),
-        StockItem("russians", "Russian sausages (packs)", 6, 4),
-        StockItem("cheese", "Cheese slices (packs)", 2, 4),
-        StockItem("potatoes", "Potatoes (kg)", 0, 8),
-        StockItem("drinks", "Cold drinks (crates)", 9, 3),
+        StockItem("bread", "Bread", 6.0, 8.0, "loaf"),
+        StockItem("potatoes", "Potatoes", 10.0, 7.0, "kg"),
+        StockItem("russians", "Smoked russians", 1.5, 1.0, "kg"),
+        StockItem("cheese", "Cheese slices", 20.0, 30.0, "slice"),
+        StockItem("oil", "Sunflower oil", 3.0, 2.0, "L"),
+        StockItem("flour", "Cake flour", 0.0, 2.5, "kg"),
+        StockItem("rolls", "Hotdog rolls", 12.0, 12.0, "roll"),
+        StockItem("colddrink", "Cold drinks", 24.0, 12.0, "can"),
     )
 }

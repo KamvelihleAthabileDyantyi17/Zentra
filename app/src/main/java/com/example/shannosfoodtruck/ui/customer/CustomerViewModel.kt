@@ -4,6 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.shannosfoodtruck.data.ActiveOrderStore
 import com.example.shannosfoodtruck.data.AppLog
+import com.example.shannosfoodtruck.data.AppSettings
+import com.example.shannosfoodtruck.data.DeliveryArea
+import com.example.shannosfoodtruck.data.InMemoryAppSettings
+import com.example.shannosfoodtruck.data.PickupTimes
 import com.example.shannosfoodtruck.data.AppUser
 import com.example.shannosfoodtruck.data.AuthService
 import com.example.shannosfoodtruck.data.Cart
@@ -43,6 +47,9 @@ data class CheckoutForm(
     val phone: String = "",
     val fulfilment: Fulfilment = Fulfilment.PICKUP,
     val address: String = "",
+    val deliveryArea: DeliveryArea = DeliveryArea.PARKLANDS,
+    /** "ASAP" or a slot like "14:30" (see PickupTimes). */
+    val pickupTime: String = PickupTimes.ASAP,
     val payment: PaymentMethod = PaymentMethod.CARD,
     val note: String = "",
 ) {
@@ -80,11 +87,15 @@ data class CustomerUiState(
     val signingIn: Boolean = false,
     /** Signed-in customer's past and current orders. */
     val myOrders: List<Order> = emptyList(),
+    /** Settings → "Remember my details". */
+    val rememberDetails: Boolean = true,
 ) {
     val isSignedIn: Boolean get() = user != null && !user.isGuest
 
+    /** The chosen truck if it's trading, otherwise the first truck that is. */
     val selectedTruck: Truck?
-        get() = trucks.firstOrNull { it.id == selectedTruckId && it.open } ?: trucks.firstOrNull { it.open }
+        get() = trucks.firstOrNull { it.id == selectedTruckId && it.open && !it.comingSoon }
+            ?: trucks.firstOrNull { it.open && !it.comingSoon }
 
     val visibleMenu: List<MenuItem>
         get() = menu.filter { category == null || it.category == category }
@@ -96,6 +107,8 @@ data class CustomerUiState(
     val cartLines: List<OrderLine> get() = cart.lines(menu)
     val cartTotal: Double get() = cart.total(menu)
     val cartCount: Int get() = cart.itemCount
+    val deliveryFee: Double get() = if (form.fulfilment == Fulfilment.DELIVERY) form.deliveryArea.fee else 0.0
+    val checkoutTotal: Double get() = cartTotal + deliveryFee
 
     /** An order that is placed but not yet collected. */
     val hasLiveOrder: Boolean get() = activeOrder != null && activeOrder.stage != OrderStage.COLLECTED
@@ -106,9 +119,16 @@ class CustomerViewModel(
     private val repo: FoodRepository,
     private val auth: AuthService,
     private val activeOrderStore: ActiveOrderStore,
+    private val settings: AppSettings = InMemoryAppSettings(),
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(CustomerUiState())
+    private val _state = MutableStateFlow(
+        CustomerUiState(
+            selectedTruckId = settings.truckId,
+            rememberDetails = settings.rememberDetails,
+            form = if (settings.rememberDetails) CheckoutForm(name = settings.savedName, phone = settings.savedPhone) else CheckoutForm(),
+        )
+    )
     val state: StateFlow<CustomerUiState> = _state.asStateFlow()
 
     private var orderJob: Job? = null
@@ -200,6 +220,8 @@ class CustomerViewModel(
             try {
                 auth.deleteAccount()
                 clearActiveOrder()
+                settings.savedName = ""
+                settings.savedPhone = ""
                 _state.update { it.copy(form = CheckoutForm(), message = "Your account has been deleted") }
                 onDeleted()
             } catch (e: Exception) {
@@ -213,7 +235,22 @@ class CustomerViewModel(
 
     // ---------- browsing ----------
 
-    fun selectTruck(truckId: String) = _state.update { it.copy(selectedTruckId = truckId) }
+    fun selectTruck(truckId: String) {
+        settings.truckId = truckId
+        _state.update { it.copy(selectedTruckId = truckId) }
+    }
+
+    // ---------- settings ----------
+
+    fun setRememberDetails(remember: Boolean) {
+        settings.rememberDetails = remember
+        if (!remember) {
+            settings.savedName = ""
+            settings.savedPhone = ""
+        }
+        AppLog.d(TAG, "Remember details: $remember")
+        _state.update { it.copy(rememberDetails = remember) }
+    }
 
     fun selectCategory(category: Category?) = _state.update { it.copy(category = category) }
 
@@ -243,6 +280,10 @@ class CustomerViewModel(
             _state.update { it.copy(message = "No truck is open right now. Try again later.") }
             return
         }
+        if (s.form.pickupTime != PickupTimes.ASAP && s.form.pickupTime !in PickupTimes.slots(PickupTimes.nowMinutes())) {
+            _state.update { it.copy(form = it.form.copy(pickupTime = PickupTimes.ASAP), message = "That time has passed. Please choose another time.") }
+            return
+        }
         _state.update { it.copy(placing = true, message = null) }
         viewModelScope.launch {
             try {
@@ -255,17 +296,24 @@ class CustomerViewModel(
                     phone = s.form.phone.trim(),
                     fulfilment = s.form.fulfilment,
                     address = if (s.form.fulfilment == Fulfilment.DELIVERY) s.form.address.trim() else "",
+                    deliveryArea = if (s.form.fulfilment == Fulfilment.DELIVERY) s.form.deliveryArea else null,
+                    pickupTime = s.form.pickupTime,
                     payment = s.form.payment,
                     note = s.form.note.trim(),
                     lines = s.cartLines,
                 )
+                // Feedback from Task 2: only confirm and clear the cart AFTER the order is saved
                 val id = repo.placeOrder(order)
                 activeOrderStore.set(id)
+                if (settings.rememberDetails) {
+                    settings.savedName = order.customerName
+                    settings.savedPhone = order.phone
+                }
                 _state.update {
                     it.copy(
                         placing = false,
                         cart = Cart(),
-                        form = it.form.copy(note = ""), // keep name/phone for next time
+                        form = it.form.copy(note = "", pickupTime = PickupTimes.ASAP), // keep name/phone for next time
                         showFormErrors = false,
                         activeOrder = order.copy(id = id),
                     )
