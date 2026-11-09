@@ -1,0 +1,54 @@
+rules_version = '2';
+// Security rules for Shannos Food Truck.
+// Paste into Firebase console > Firestore Database > Rules, then Publish.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isStaff() {
+      return signedIn() && exists(/databases/$(database)/documents/staff/$(request.auth.uid));
+    }
+
+    // Anyone can read the menu and trucks; only staff can change them.
+    match /menu/{itemId} {
+      allow read: if true;
+      allow write: if isStaff();
+    }
+    match /trucks/{truckId} {
+      allow read: if true;
+      allow write: if isStaff();
+
+      match /stock/{stockId} {
+        allow read, write: if isStaff();
+      }
+    }
+
+    // Customers (signed in anonymously) create orders for themselves and can only see their own.
+    // Staff see every order and are the only ones who can move an order to the next stage.
+    match /orders/{orderId} {
+      allow create: if signedIn()
+        && request.resource.data.customerUid == request.auth.uid
+        && request.resource.data.stage == 'RECEIVED'
+        && request.resource.data.lines is list
+        && request.resource.data.lines.size() > 0;
+      allow get: if signedIn() && (resource.data.customerUid == request.auth.uid || isStaff());
+      allow list: if isStaff();
+      allow update: if isStaff()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stage']);
+      allow delete: if false;
+    }
+
+    match /feedback/{id} {
+      allow create: if signedIn()
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1 && request.resource.data.rating <= 5;
+      allow read: if isStaff();
+    }
+
+    // Staff list. Add a document with the staff member's UID as its id (any fields) in the console.
+    match /staff/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+  }
+}
