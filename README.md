@@ -19,12 +19,12 @@ Built by the **Zentra** team.
 A website for customers and staff, in `web/`, sharing the **same Firebase project** as the app:
 
 - **Customer site** (`index.html`): menu, cart, checkout, live order tracking, feedback, and **Continue with Google** with *My orders*.
-- **Staff dashboard** (`staff.html`): Google or email login, live order board per truck, sold-out toggles, stock.
+- **Staff dashboard** (`staff.html`): Google or email login, live order board per truck, **Sales & buying** (sales report + Daily Purchase Recommendation), sold-out toggles, stock.
 - An order placed on the website shows up instantly on the app's staff dashboard, and the reverse. The same Google account works on both *(innovative feature)*.
 
-| Customer: home | Customer: live tracking | Staff: live orders |
-| --- | --- | --- |
-| ![Website home](docs/screenshots/web/01-home.png) | ![Order tracking](docs/screenshots/web/08-track-cooking.png) | ![Staff dashboard](docs/screenshots/web/07-staff-orders.png) |
+| Customer: home | Customer: live tracking | Staff: live orders | Staff: sales & buying |
+| --- | --- | --- | --- |
+| ![Website home](docs/screenshots/web/01-home.png) | ![Order tracking](docs/screenshots/web/09-track-cooking.png) | ![Staff live orders](docs/screenshots/web/08-staff-orders.png) | ![Sales and purchase recommendation](docs/screenshots/web/10-staff-sales-buying.png) |
 
 More screenshots: [`docs/screenshots/web`](docs/screenshots/web).
 
@@ -49,18 +49,20 @@ Website logging: open DevTools (F12) → Console and filter by `Shannos`.
 ## What the app does
 
 **Customers** (no account needed):
-1. Pick a truck → browse the menu by category (Kotas, Sides, Rolls, Drinks)
-2. Add items, leave a note for the kitchen, check out (collect or delivery, card or cash)
+1. Pick a truck (Truck 1: corner of Sandown Road and Discovery Drive, Rivergate; Trucks 2 and 3 coming soon) → browse the menu by category (Kotas, Sides, Rolls, Drinks)
+2. Add items, leave a note for the kitchen, check out: collect or delivery (**free in Parklands, R50 outside**), **ASAP or a pickup time**, card or cash
 3. Track the order live: Received → On the pan → Ready to collect → Collected
 4. Rate the food
 
 **Account** (single sign-on):
 - *Continue with Google* on the Account tab. Optional: guests can still order.
 - Signing in keeps your name for checkout and shows **My orders** (live), on any phone. A guest who signs in keeps the order they just placed.
-- Stays signed in between launches until you tap *Sign out*.
+- Stays signed in between launches until you tap *Sign out*. *Delete my account* removes the login for good.
+- **Settings:** my truck, remember my details, privacy policy, staff login.
 
 **Staff** (Account → *Staff login*, with Google or email):
 - Live order board per truck. One tap moves an order to the next stage, and the customer's phone updates instantly.
+- **Sales & buying:** today's (or a typical day's) orders, sales, average order and top sellers, plus a **Daily Purchase Recommendation**: ingredients needed from real orders, minus what's on the truck, rounded up to the packs Checkers sells, with an estimated cost *(innovative feature)*
 - Mark menu items sold out (they disappear from customers' carts straight away)
 - Stock levels with Low / Out flags
 
@@ -76,6 +78,8 @@ Website logging: open DevTools (F12) → Console and filter by `Shannos`.
 app/src/main/java/com/example/shannosfoodtruck/
 ├── MainActivity.kt / ShannosApp.kt     app entry + shared objects
 ├── data/                               models, cart maths, repositories
+│   ├── Recipes.kt                      ingredients, Checkers prices, recipes, PurchasePlanner
+│   ├── PickupTimes.kt                  pickup time slots (06:00 to 20:00)
 │   ├── FoodRepository.kt               the one interface all screens use
 │   ├── FirestoreRepository.kt          live Firebase implementation
 │   └── DemoRepository.kt               offline/in-memory implementation (tests + demos)
@@ -123,7 +127,7 @@ Release builds are signed from `keystore.properties` (local) or GitHub secrets (
 All logs go through `data/AppLog.kt` with the tag **`Shannos`**. In Android Studio open **Logcat** and type `tag:Shannos` to see the app's story as you use it, for example:
 
 ```
-I Shannos: [App] Started v2.1 using Firebase (live data)
+I Shannos: [App] Started v2.4 using Firebase (live data)
 D Shannos: [CustomerVM] Menu loaded: 11 items, 1 sold out
 I Shannos: [Auth] Signed in with Google
 D Shannos: [FirestoreRepository] Placing order SFT-48213 (3 items) for truck1
@@ -132,13 +136,45 @@ D Shannos: [CustomerVM] Order SFT-48213 is now COOKING
 
 Levels: `d` normal flow, `i` sign-in/out, `w` recovered problems, `e` failures shown to the user. Passwords, tokens and phone numbers are never logged.
 
-## Tests
+## How to use it (end-user guide)
 
+**Ordering (customers)**
+1. Open the app (or the website). On **Home**, check the truck shown at the top; tap it to change truck.
+2. Tap **Order now**. Use the tabs (Kotas, Sides, Rolls, Drinks) and tap **+** to add food. Use **− / +** to change how many.
+3. Tap **Order** in the bottom bar. Add a note for the kitchen if you like, then **Checkout**.
+4. Choose **Collect at truck** or **Deliver to me** (pick *In Parklands* for free delivery, or *Outside Parklands* for R50 and type your address).
+5. Choose **ASAP** or a time, enter your name and cellphone number, choose **Card** or **Cash**, and tap **Place order**.
+6. The **Track** screen shows your order number and updates by itself: *Order received → On the pan → Ready to collect → Collected*. Show the order number at the window.
+7. After collecting, tap **Rate your food**.
+
+**Your account (optional)**
+- **Account → Continue with Google** saves your details and shows **My orders** on any phone and on the website.
+- **Settings:** change your truck, switch *Remember my details* on or off, read the privacy policy.
+- **Sign out** or **Delete my account** at any time.
+
+**Running the truck (staff)**
+1. **Account → Staff login**, then sign in with Google or your staff email.
+2. **Orders:** new orders appear by themselves. Tap **Start cooking**, then **Mark ready**, then **Collected**. The customer's phone updates instantly. Tickets show the pickup time in red if it isn't ASAP.
+3. **Sales & buying:** see today's sales and top sellers, and **What to buy**: the ingredients to buy (in Checkers packs) with an estimated cost. Switch to *Typical day (last 7 days)* to plan tomorrow's shop.
+4. **Menu:** tap an item to mark it **Sold out** (or available again).
+5. **Stock:** what's on the truck, with **Low / Out** warnings.
+6. Use the truck buttons at the top to switch between trucks.
+
+## Tests and evidence
+
+**App unit tests** (33 tests, run on every push):
 ```
 ./gradlew testDebugUnitTest
 ```
+- `CartTest`: cart maths, sold-out handling, quantity cap, phone validation, order stages, stock status
+- `PurchasePlannerTest`: every menu item has a recipe, sales summary, ingredient usage, rounding up to whole packs, subtracting stock, 7-day average, delivery fees, pickup time slots
+- `OrderFlowTest`: full customer → staff → customer journey on demo data, invalid checkout blocked, Google sign-in keeps guest orders, sign-out, account deletion, staff Google login, coming-soon trucks, R50 delivery, remembered details, staff sales report
 
-Covers cart maths, sold-out handling, phone validation, order stages, a full customer → staff → customer order journey, and Google sign-in (guest orders kept after sign-in, sign-out ends the session, staff Google login) on demo data. GitHub Actions runs the tests and builds the APK on every push. Download the APK from the workflow run's artifacts.
+**Website end-to-end test** (`tests/web/e2e.mjs`, 21 checks): opens the shop and the staff dashboard in two browser tabs, places an order, moves it through every stage, and checks the customer sees each step live; also delivery fees, Sales & buying, sold-out, Google sign-in, settings, account deletion and the phone layout. GitHub Actions saves its screenshots as the **website-test-screenshots** artifact.
+
+**Physical phone testing:** see the checklist in [`docs/testing.md`](docs/testing.md).
+
+GitHub Actions also builds the APK on every push. Download it from the workflow run's artifacts.
 
 ## Team workflow
 
@@ -147,6 +183,18 @@ Covers cart maths, sold-out handling, phone validation, order stages, a full cus
 - CI must be green before merging.
 
 ## Release notes
+
+### v2.4 — Lecturer feedback and client requirements
+- **New: Daily Purchase Recommendation** (Task 1, FR-10/FR-14) for staff on app and web: turns real orders into a shopping list of Checkers packs, minus stock on the truck, with an estimated cost *(innovative feature)*.
+- **New: sales report** (Task 1, FR-12): orders, sales, average order and top sellers for today or the last 7 days.
+- **New: preferred pickup time** (Task 1, FR-04): ASAP or a 15-minute slot between 06:00 and 20:00, shown on staff tickets.
+- **New: delivery pricing:** free in Parklands, R50 outside, added to the total.
+- **New: real truck location:** Truck 1 at the corner of Sandown Road and Discovery Drive, Rivergate; Trucks 2 and 3 shown as *Coming soon* (no more placeholders).
+- **New: Settings** (Task 2 feedback): my truck, remember my details, privacy policy, staff login.
+- **New: website end-to-end test in CI** (Task 1 feedback: automated testing evidence), with screenshots saved on every run.
+- Stock is now tracked per ingredient with units (loaves, kg, slices…).
+- Confirmation only after the order is saved (Task 2 feedback) is now commented in the code on both platforms.
+- End-user guide and physical-phone test checklist added.
 
 ### v2.3 — Ready for Google Play
 - **New app icon:** the Shannos "S" on sign yellow (adaptive icon plus legacy sizes).
@@ -191,11 +239,12 @@ Covers cart maths, sold-out handling, phone validation, order stages, a full cus
 
 - Deploy the website (Firebase Hosting steps above)
 - Change the application ID and upload to Play internal testing ([guide](docs/play-store/README.md))
-- Fill the `[PLACEHOLDERS]` in `web/privacy.html` (date, retention period, contact email)
-- Real truck locations for Trucks 2 and 3 (`StarterData.kt`, marked `TODO(team)`)
-- Delivery fee (currently shown as "[SET BY OWNER]")
-- Real card payments (e.g. a payment gateway); today, card is paid at collection
+- Owner details in `web/privacy.html`: date, how long orders are kept, contact email
+- Truck 2 and Truck 3 locations, once decided (`StarterData.kt` and `web/js/starter-data.js`)
+- Check the example recipes in `Recipes.kt` / `web/js/recipes.js` against Shannon's real portions
+- Online card payments (a payment gateway); today card or cash is paid at collection or delivery
 - Stock that drops automatically as orders are placed
-- Anton headline font (instructions in `ui/theme/Theme.kt`)
+- Push notifications when an order is ready (Task 1, FR-15)
+- Anton headline font in the app (instructions in `ui/theme/Theme.kt`)
 
 Project documents (plan, report, architecture, task list, old HTML prototype) are in [`docs/`](docs/).

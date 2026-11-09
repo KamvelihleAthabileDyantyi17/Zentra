@@ -6,6 +6,7 @@ import { log } from "./util.js";
 import { STARTER_MENU, STARTER_TRUCKS, STARTER_STOCK } from "./starter-data.js";
 
 const DB_KEY = "shannos-demo-db";
+const DB_VERSION = 2; // bump when the demo data's shape changes, so old browsers start fresh
 // The shop and the staff page keep separate demo sessions, as if they were different phones,
 // so you can be a customer in one tab and staff in another.
 const USER_KEY = location.pathname.includes("staff") ? "shannos-demo-staff-user" : "shannos-demo-user";
@@ -14,9 +15,9 @@ const STAFF_KEY = "shannos-demo-staff";
 function readDb() {
   try {
     const db = JSON.parse(localStorage.getItem(DB_KEY));
-    if (db && db.menu) return db;
+    if (db && db.menu && db.version === DB_VERSION) return db;
   } catch (_) { /* fall through to a fresh database */ }
-  return { menu: STARTER_MENU, trucks: STARTER_TRUCKS, stock: STARTER_STOCK, orders: {}, feedback: [] };
+  return { version: DB_VERSION, menu: STARTER_MENU, trucks: STARTER_TRUCKS, stock: STARTER_STOCK, orders: {}, feedback: [] };
 }
 
 function writeDb(db) {
@@ -57,6 +58,9 @@ export const data = {
 
   onCustomerOrders: (uid, cb) =>
     watch((db) => Object.values(db.orders).filter((o) => o.customerUid === uid).sort((a, b) => b.createdAt - a.createdAt), cb),
+
+  onOrdersSince: (truckId, since, cb) =>
+    watch((db) => Object.values(db.orders).filter((o) => o.truckId === truckId && o.createdAt >= since), cb),
 
   onOpenOrders: (truckId, cb) =>
     watch((db) => Object.values(db.orders)

@@ -21,10 +21,11 @@ import kotlinx.coroutines.tasks.await
  *
  * Collections:
  *   menu/{itemId}                      name, description, price, category, tag, available, sort
- *   trucks/{truckId}                   name, spot, open
- *   trucks/{truckId}/stock/{stockId}   name, onHand, reorderAt
+ *   trucks/{truckId}                   name, spot, address, open, comingSoon
+ *   trucks/{truckId}/stock/{stockId}   name, onHand, reorderAt, unit   (stockId = ingredient id)
  *   orders/{orderId}                   number, truckId, customerUid, customerName, phone, fulfilment,
- *                                      address, payment, note, lines[], stage, createdAt
+ *                                      address, deliveryArea, deliveryFee, pickupTime, payment, note,
+ *                                      lines[], total, stage, createdAt
  *   feedback/{id}                      orderId, rating, comment, createdAt
  *   staff/{uid}                        exists = this user may use the staff dashboard
  *
@@ -74,6 +75,17 @@ class FirestoreRepository(
             sort = { list -> list.sortedByDescending { it.createdAt } },
         ) { it.toOrder() }
 
+    /**
+     * Orders for a truck since a time, for the sales and purchase report. Filters on createdAt only
+     * (a single-field index Firestore creates automatically) and picks the truck on the phone,
+     * so no composite index has to be set up in the console.
+     */
+    override fun ordersSince(truckId: String, sinceMillis: Long): Flow<List<Order>> =
+        listen<Order>(
+            ordersCol.whereGreaterThanOrEqualTo("createdAt", sinceMillis),
+            sort = { list -> list.filter { it.truckId == truckId } },
+        ) { it.toOrder() }
+
     override fun openOrders(truckId: String): Flow<List<Order>> =
         listen<Order>(
             ordersCol
@@ -103,11 +115,14 @@ class FirestoreRepository(
         }
         if (trucksCol.limit(1).get().await().isEmpty) {
             StarterData.trucks.forEach { truck ->
-                batch.set(trucksCol.document(truck.id), mapOf("name" to truck.name, "spot" to truck.spot, "open" to truck.open))
+                batch.set(
+                    trucksCol.document(truck.id),
+                    mapOf("name" to truck.name, "spot" to truck.spot, "address" to truck.address, "open" to truck.open, "comingSoon" to truck.comingSoon),
+                )
                 StarterData.stock.forEach { s ->
                     batch.set(
                         trucksCol.document(truck.id).collection("stock").document(s.id),
-                        mapOf("name" to s.name, "onHand" to s.onHand, "reorderAt" to s.reorderAt),
+                        mapOf("name" to s.name, "onHand" to s.onHand, "reorderAt" to s.reorderAt, "unit" to s.unit),
                     )
                 }
             }
@@ -172,7 +187,10 @@ private fun DocumentSnapshot.toMenuItem(): MenuItem? {
 
 private fun DocumentSnapshot.toTruck(): Truck? {
     val name = getString("name") ?: return null
-    return Truck(id = id, name = name, spot = getString("spot").orEmpty(), open = getBoolean("open") ?: false)
+    return Truck(
+        id = id, name = name, spot = getString("spot").orEmpty(), open = getBoolean("open") ?: false,
+        address = getString("address").orEmpty(), comingSoon = getBoolean("comingSoon") ?: false,
+    )
 }
 
 private fun DocumentSnapshot.toStockItem(): StockItem? {
@@ -180,8 +198,9 @@ private fun DocumentSnapshot.toStockItem(): StockItem? {
     return StockItem(
         id = id,
         name = name,
-        onHand = getLong("onHand")?.toInt() ?: 0,
-        reorderAt = getLong("reorderAt")?.toInt() ?: 0,
+        onHand = getDouble("onHand") ?: 0.0,
+        reorderAt = getDouble("reorderAt") ?: 0.0,
+        unit = getString("unit").orEmpty(),
     )
 }
 
@@ -193,6 +212,9 @@ private fun Order.toMap() = mapOf(
     "phone" to phone,
     "fulfilment" to fulfilment.name,
     "address" to address,
+    "deliveryArea" to deliveryArea?.name,
+    "deliveryFee" to deliveryFee,
+    "pickupTime" to pickupTime,
     "payment" to payment.name,
     "note" to note,
     "lines" to lines.map { mapOf("itemId" to it.itemId, "name" to it.name, "quantity" to it.quantity, "unitPrice" to it.unitPrice) },
@@ -213,6 +235,8 @@ private fun DocumentSnapshot.toOrder(): Order? {
         phone = getString("phone").orEmpty(),
         fulfilment = runCatching { Fulfilment.valueOf(getString("fulfilment")!!) }.getOrDefault(Fulfilment.PICKUP),
         address = getString("address").orEmpty(),
+        deliveryArea = getString("deliveryArea")?.let { name -> DeliveryArea.entries.firstOrNull { it.name == name } },
+        pickupTime = getString("pickupTime") ?: PickupTimes.ASAP,
         payment = runCatching { PaymentMethod.valueOf(getString("payment")!!) }.getOrDefault(PaymentMethod.CASH),
         note = getString("note").orEmpty(),
         lines = rawLines.map {

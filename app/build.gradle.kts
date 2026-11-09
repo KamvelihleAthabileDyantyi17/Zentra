@@ -30,8 +30,8 @@ android {
         applicationId = "com.example.shannosfoodtruck"
         minSdk = 24
         targetSdk = 35
-        versionCode = 4
-        versionName = "2.3"
+        versionCode = 5
+        versionName = "2.4"
 
         // true  = live data from Firebase (Firestore + Auth)
         // false = offline demo data, handy for quick testing without internet

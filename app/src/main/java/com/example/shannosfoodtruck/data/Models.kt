@@ -30,8 +30,13 @@ data class MenuItem(
 data class Truck(
     val id: String,
     val name: String,
+    /** Short location shown in lists, e.g. "Cnr Sandown Rd & Discovery Dr, Rivergate". */
     val spot: String,
     val open: Boolean,
+    /** Full street address for directions. */
+    val address: String = "",
+    /** A truck that's planned but not trading yet. Shown as "Coming soon" and can't take orders. */
+    val comingSoon: Boolean = false,
 )
 
 /** The four steps an order moves through. Staff move it forward; customers watch it live. */
@@ -50,7 +55,13 @@ enum class OrderStage(val label: String, val hint: String, val staffAction: Stri
 
 enum class Fulfilment(val label: String) { PICKUP("Collect at truck"), DELIVERY("Deliver to me") }
 
-enum class PaymentMethod(val label: String) { CARD("Card"), CASH("Cash at truck") }
+/** Delivery pricing set by the owner: free inside Parklands, R50 anywhere else. */
+enum class DeliveryArea(val label: String, val fee: Double) {
+    PARKLANDS("In Parklands", 0.0),
+    OUTSIDE("Outside Parklands", 50.0),
+}
+
+enum class PaymentMethod(val label: String) { CARD("Card"), CASH("Cash") }
 
 data class OrderLine(
     val itemId: String,
@@ -76,16 +87,24 @@ data class Order(
     val stage: OrderStage = OrderStage.RECEIVED,
     val createdAt: Long = System.currentTimeMillis(),
     val customerUid: String = "",
+    /** Only for delivery orders. */
+    val deliveryArea: DeliveryArea? = null,
+    /** "ASAP" or a time today like "14:30" (Task 1, FR-04: preferred pickup time). */
+    val pickupTime: String = PickupTimes.ASAP,
 ) {
-    val total: Double get() = lines.sumOf { it.lineTotal }
+    val itemsTotal: Double get() = lines.sumOf { it.lineTotal }
+    val deliveryFee: Double get() = if (fulfilment == Fulfilment.DELIVERY) deliveryArea?.fee ?: 0.0 else 0.0
+    val total: Double get() = itemsTotal + deliveryFee
     val itemCount: Int get() = lines.sumOf { it.quantity }
 }
 
+/** One ingredient on a truck. Quantities are in the ingredient's unit (see Recipes.kt), e.g. loaves, kg, slices. */
 data class StockItem(
     val id: String,
     val name: String,
-    val onHand: Int,
-    val reorderAt: Int,
+    val onHand: Double,
+    val reorderAt: Double,
+    val unit: String = "",
 ) {
     val status: StockStatus
         get() = when {
@@ -105,3 +124,8 @@ data class Feedback(
 
 /** Rand formatting used everywhere, e.g. R55.00 */
 fun Double.toRand(): String = String.format(Locale.US, "R%.2f", this)
+
+/** 2, 0.5, 1.25: trims needless decimals for quantities. */
+fun Double.toQty(): String =
+    if (this == Math.floor(this)) String.format(Locale.US, "%.0f", this)
+    else String.format(Locale.US, "%.2f", this).trimEnd('0').trimEnd('.')

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -33,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -48,6 +50,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.shannosfoodtruck.data.Category
+import com.example.shannosfoodtruck.data.DeliveryArea
+import com.example.shannosfoodtruck.data.PickupTimes
 import com.example.shannosfoodtruck.data.Fulfilment
 import com.example.shannosfoodtruck.data.OrderStage
 import com.example.shannosfoodtruck.data.PaymentMethod
@@ -149,6 +153,9 @@ private fun CategoryChip(label: String, selected: Boolean, onClick: () -> Unit) 
     ) { Text(label, color = if (selected) Color.White else Kasi.Ink, fontWeight = FontWeight.Bold, fontSize = 14.sp) }
 }
 
+@Composable
+private fun TimeChip(label: String, selected: Boolean, onClick: () -> Unit) = CategoryChip(label, selected, onClick)
+
 // ======================= CART =======================
 
 @Composable
@@ -238,8 +245,29 @@ fun CheckoutScreen(
                     Text(if (truck != null) "Collect from ${truck.name}, ${truck.spot}" else "No truck is open right now", fontSize = 14.sp)
                 }
             } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    DeliveryArea.entries.forEach { area ->
+                        val fee = if (area.fee == 0.0) "Free" else area.fee.toRand()
+                        ChoiceCard("${area.label}\n$fee", form.deliveryArea == area, { onFormChange { it.copy(deliveryArea = area) } }, Modifier.weight(1f))
+                    }
+                }
                 KasiTextField("Delivery address", form.address, { v -> onFormChange { it.copy(address = v) } }, placeholder = "Street, area", error = errors[CheckoutFormFields.ADDRESS])
-                Text("Delivery fee: [SET BY OWNER]", color = Kasi.Muted, fontSize = 13.sp)
+            }
+        }
+
+        // Task 1, FR-04: preferred pickup (or delivery) time
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SectionLabel(if (form.fulfilment == Fulfilment.PICKUP) "When will you collect?" else "When should we deliver?")
+            val slots = remember(form.fulfilment) { listOf(PickupTimes.ASAP) + PickupTimes.slots(PickupTimes.nowMinutes()) }
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(slots) { slot ->
+                    TimeChip(PickupTimes.label(slot).let { if (slot == PickupTimes.ASAP) "ASAP" else it }, form.pickupTime == slot) {
+                        onFormChange { it.copy(pickupTime = slot) }
+                    }
+                }
+            }
+            if (form.pickupTime == PickupTimes.ASAP) {
+                Text("Ready in about 10 to 15 minutes.", color = Kasi.Muted, fontSize = 13.sp)
             }
         }
 
@@ -256,15 +284,27 @@ fun CheckoutScreen(
                     ChoiceCard(p.label, form.payment == p, { onFormChange { it.copy(payment = p) } }, Modifier.weight(1f))
                 }
             }
-            if (form.payment == PaymentMethod.CARD) {
-                Text("Card payment is a placeholder for now: the truck takes card at collection.", color = Kasi.Muted, fontSize = 13.sp)
-            }
+            Text(
+                if (form.payment == PaymentMethod.CARD) "Pay by card when you collect, or when your order is delivered." else "Pay cash when you collect, or when your order is delivered.",
+                color = Kasi.Muted, fontSize = 13.sp,
+            )
         }
 
         Panel(padding = 16.dp) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("${state.cartCount} ${if (state.cartCount == 1) "item" else "items"}", fontWeight = FontWeight.Bold)
-                Text(state.cartTotal.toRand(), fontWeight = FontWeight.Bold)
+                Text("${state.cartCount} ${if (state.cartCount == 1) "item" else "items"}")
+                Text(state.cartTotal.toRand())
+            }
+            if (form.fulfilment == Fulfilment.DELIVERY) {
+                Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Delivery (${form.deliveryArea.label})")
+                    Text(if (state.deliveryFee == 0.0) "Free" else state.deliveryFee.toRand())
+                }
+            }
+            HorizontalDivider(Modifier.padding(vertical = 10.dp), color = Kasi.Divider)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("Total", fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                Text(state.checkoutTotal.toRand(), fontWeight = FontWeight.Bold, fontSize = 17.sp)
             }
         }
         PillButton(
@@ -356,11 +396,20 @@ fun TrackScreen(state: CustomerUiState, onBrowse: () -> Unit, onRate: () -> Unit
         }
 
         Panel(padding = 18.dp) {
-            SectionLabel(if (order.fulfilment == Fulfilment.PICKUP) "Collect at truck · ${order.payment.label}" else "Delivery · ${order.payment.label}")
+            SectionLabel(
+                (if (order.fulfilment == Fulfilment.PICKUP) "Collect at truck" else "Delivery") +
+                    " · ${PickupTimes.label(order.pickupTime)} · ${order.payment.label}"
+            )
             order.lines.forEach { line ->
                 Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("${line.quantity} × ${line.name}", fontSize = 14.sp)
                     Text(line.lineTotal.toRand(), fontSize = 14.sp)
+                }
+            }
+            if (order.fulfilment == Fulfilment.DELIVERY) {
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Delivery (${order.deliveryArea?.label ?: ""})", fontSize = 14.sp)
+                    Text(if (order.deliveryFee == 0.0) "Free" else order.deliveryFee.toRand(), fontSize = 14.sp)
                 }
             }
             HorizontalDivider(Modifier.padding(vertical = 10.dp), color = Kasi.Divider)

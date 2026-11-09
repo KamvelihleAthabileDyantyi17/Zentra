@@ -6,6 +6,7 @@
 
 import { getBackend } from "./backend.js";
 import { CATEGORIES, esc, log, nextStage, orderTotal, rand, stageInfo, toast } from "./util.js";
+import { ASAP, PRICE_SOURCE, deliveryArea, purchasePlan, qty, salesSummary, totalCost } from "./recipes.js";
 
 const { data, auth, demo } = await getBackend();
 const root = document.getElementById("staff-app");
@@ -22,14 +23,37 @@ const state = {
   menu: [],
   stock: [],
   busy: false,
+  basis: "TODAY", // or "WEEK"
+  reportOrders: [],
 };
+
+const BASES = { TODAY: { label: "Today", days: 1 }, WEEK: { label: "Typical day (last 7 days)", days: 7 } };
+
+/** Midnight today, or midnight six days ago for a 7-day window. */
+function startOfPeriod(basis) {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - (BASES[basis].days - 1));
+  return d.getTime();
+}
 
 let unsubscribers = [];
 let truckSubs = [];
+let reportSub = null;
 
 function stopAll() {
-  [...unsubscribers, ...truckSubs].forEach((stop) => stop?.());
-  unsubscribers = []; truckSubs = [];
+  [...unsubscribers, ...truckSubs, reportSub].forEach((stop) => stop?.());
+  unsubscribers = []; truckSubs = []; reportSub = null;
+}
+
+function watchReport() {
+  reportSub?.();
+  if (!state.truckId) return;
+  reportSub = data.onOrdersSince(state.truckId, startOfPeriod(state.basis), (orders) => {
+    log.d("Staff", `Report: ${orders.length} orders`);
+    state.reportOrders = orders;
+    render();
+  });
 }
 
 function startListening() {
@@ -56,6 +80,7 @@ function selectTruck(id) {
     }),
     data.onStock(id, (stock) => { state.stock = stock; render(); }),
   ];
+  watchReport();
   render();
 }
 
@@ -113,13 +138,14 @@ function ordersSection() {
             ${list.length ? "" : `<div class="muted small" style="text-align:center;padding:16px;border:1.5px dashed var(--line);border-radius:14px">Nothing here</div>`}
             ${list.map((o) => `
               <article class="ticket">
-                <div class="spread"><strong>${esc(o.number)}</strong><span class="muted small">${o.fulfilment === "DELIVERY" ? "Delivery" : "Collect"}</span></div>
+                <div class="spread"><strong>${esc(o.number)}</strong>
+                  <span class="small" style="font-weight:700;color:${!o.pickupTime || o.pickupTime === ASAP ? "var(--muted)" : "var(--chilli)"}">${o.fulfilment === "DELIVERY" ? "Delivery" : "Collect"} · ${esc(o.pickupTime && o.pickupTime !== ASAP ? o.pickupTime : "ASAP")}</span></div>
                 <span>${esc(o.customerName)} · ${esc(o.phone)}</span>
                 <span class="muted small">${esc(o.lines.map((l) => (l.quantity > 1 ? `${l.quantity} × ` : "") + l.name).join(", "))}</span>
                 ${o.note ? `<strong class="small">Note: ${esc(o.note)}</strong>` : ""}
-                ${o.fulfilment === "DELIVERY" ? `<span class="small">Deliver to: ${esc(o.address)}</span>` : ""}
+                ${o.fulfilment === "DELIVERY" ? `<span class="small">Deliver to: ${esc(o.address)} (${esc(deliveryArea(o.deliveryArea)?.label || "")}, fee ${rand(o.deliveryFee || 0)})</span>` : ""}
                 <div class="spread" style="padding-top:6px">
-                  <span><strong>${rand(orderTotal(o))}</strong><br><span class="muted small">${o.payment === "CARD" ? "Card" : "Cash at truck"}</span></span>
+                  <span><strong>${rand(orderTotal(o))}</strong><br><span class="muted small">${o.payment === "CARD" ? "Card" : "Cash"}</span></span>
                   <button class="btn ${c.btn}" data-action="advance" data-id="${esc(o.id)}" data-stage="${esc(o.stage)}" ${state.busy ? "disabled" : ""}>${esc(stageInfo(o.stage).action)}</button>
                 </div>
               </article>`).join("")}
@@ -159,14 +185,52 @@ function stockSection() {
     <div class="table-wrap"><table>
       <thead><tr><th scope="col">Item</th><th scope="col">On hand</th><th scope="col">Reorder at</th><th scope="col">Status</th></tr></thead>
       <tbody>${state.stock.map((s) => { const [label, cls] = status(s); return `
-        <tr><td><strong>${esc(s.name)}</strong></td><td>${s.onHand}</td><td>${s.reorderAt}</td><td><span class="badge ${cls}">${label}</span></td></tr>`; }).join("")}
+        <tr><td><strong>${esc(s.name)}</strong></td><td>${qty(s.onHand)} ${esc(s.unit || "")}</td><td>${qty(s.reorderAt)} ${esc(s.unit || "")}</td><td><span class="badge ${cls}">${label}</span></td></tr>`; }).join("")}
       </tbody>
     </table></div>
-    <span class="muted small">Next step: stock drops automatically as orders come in.</span>`;
+    <span class="muted small">See Sales &amp; buying for what to buy, worked out from orders.</span>`;
+}
+
+// Task 1: FR-10 Daily Purchase Recommendation, FR-12 sales analytics
+function reportSection() {
+  const sales = salesSummary(state.reportOrders);
+  const stock = Object.fromEntries(state.stock.map((s) => [s.id, Number(s.onHand) || 0]));
+  const plan = purchasePlan(state.reportOrders, BASES[state.basis].days, stock);
+  const toBuy = plan.filter((l) => l.packsToBuy > 0);
+  return `
+    <div class="segmented" role="group" aria-label="Period" style="align-self:flex-start">
+      ${Object.entries(BASES).map(([id, b]) => `<button data-action="basis" data-id="${id}" aria-pressed="${state.basis === id}">${b.label}</button>`).join("")}
+    </div>
+    <div class="stats">
+      <div class="stat"><span class="label">Orders</span><div class="num">${sales.orderCount}</div></div>
+      <div class="stat" style="background:var(--sign)"><span class="label" style="color:var(--ink)">Sales</span><div class="num">${rand(sales.revenue)}</div></div>
+      <div class="stat"><span class="label">Items sold</span><div class="num">${sales.itemsSold}</div></div>
+      <div class="stat"><span class="label">Average order</span><div class="num">${rand(sales.averageOrder)}</div></div>
+    </div>
+    ${state.basis === "WEEK" ? `<span class="muted small">Sales are for the whole 7 days. The shopping list is for one typical day.</span>` : ""}
+    ${sales.topSellers.length ? `<div class="panel"><span class="label">Top sellers</span>
+      ${sales.topSellers.map(([name, n], i) => `<div class="spread" style="padding-top:8px"><span>${i + 1}. ${esc(name)}</span><strong>${n} sold</strong></div>`).join("")}</div>` : ""}
+    <h2>What to buy</h2>
+    ${plan.length === 0 ? `<p class="muted">No orders in this period yet, so there's nothing to recommend.</p>` : `
+      <div class="table-wrap"><table>
+        <thead><tr><th scope="col">Ingredient</th><th scope="col">Need</th><th scope="col">On truck</th><th scope="col">Buy</th><th scope="col">Est. cost</th></tr></thead>
+        <tbody>${plan.map((l) => `
+          <tr>
+            <td><strong>${esc(l.ingredient.name)}</strong>${l.packsToBuy ? `<br><span class="muted small">${esc(l.ingredient.pack)}</span>` : ""}</td>
+            <td>${qty(l.needed)} ${esc(l.ingredient.unit)}</td>
+            <td>${qty(l.onHand)}</td>
+            <td>${l.packsToBuy ? `<strong>${l.packsToBuy}</strong>` : `<span class="badge badge-green">Enough</span>`}</td>
+            <td>${l.packsToBuy ? (l.estimatedCost == null ? "check price" : rand(l.estimatedCost)) : "–"}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table></div>
+      <div class="panel spread"><strong>Estimated shopping cost (${toBuy.length} item${toBuy.length === 1 ? "" : "s"})</strong><strong style="font-size:20px">${rand(totalCost(toBuy))}</strong></div>
+      <span class="muted small">${PRICE_SOURCE} Portions are example recipes; adjust them in web/js/recipes.js and Recipes.kt.</span>`}`;
 }
 
 const SECTIONS = {
   orders: { title: "Live orders", sub: "Click the button on a ticket to move it along. The customer sees it update.", body: ordersSection },
+  report: { title: "Sales & buying", sub: "Today's sales and what to buy, worked out from real orders.", body: reportSection },
   menu: { title: "Menu", sub: "Mark items sold out so customers can't order them.", body: menuSection },
   stock: { title: "Stock", sub: "What's on the truck right now.", body: stockSection },
 };
@@ -242,6 +306,7 @@ document.addEventListener("click", async (e) => {
   switch (action) {
     case "google": await attemptSignIn(() => auth.signInStaffGoogle()); break;
     case "section": state.section = id; render(); break;
+    case "basis": state.basis = id; watchReport(); render(); break;
     case "truck": selectTruck(id); break;
     case "advance": {
       const to = nextStage(el.dataset.stage);

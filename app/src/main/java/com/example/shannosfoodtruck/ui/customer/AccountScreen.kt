@@ -15,6 +15,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,6 +30,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,7 +60,8 @@ import java.util.Locale
  * your orders on any phone, and on the Shannos website with the same Google account.
  */
 @Composable
-fun AccountScreen(vm: CustomerViewModel, state: CustomerUiState, onStaff: () -> Unit) {
+fun AccountScreen(vm: CustomerViewModel, state: CustomerUiState, onStaff: () -> Unit, onPickTruck: () -> Unit) {
+    val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val googleSignIn = rememberGoogleSignIn(onToken = vm::signInWithGoogle, onError = vm::showMessage)
@@ -146,9 +152,38 @@ fun AccountScreen(vm: CustomerViewModel, state: CustomerUiState, onStaff: () -> 
             }
         }
 
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            SectionLabel("Work at the truck?")
-            TextButton(onClick = onStaff) { Text("Staff login", color = Kasi.Ink, fontWeight = FontWeight.Bold) }
+        // Settings (Task 2 feedback: the settings menu was too limited)
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SectionLabel("Settings")
+            Panel(padding = 4.dp) {
+                SettingRow(
+                    title = "My truck",
+                    subtitle = state.selectedTruck?.let { "${it.name} · ${it.spot}" } ?: "No truck open",
+                    onClick = onPickTruck,
+                ) { Text("Change", color = Kasi.Chilli, fontWeight = FontWeight.Bold) }
+                HorizontalDivider(color = Kasi.Divider)
+                SettingRow(
+                    title = "Remember my details",
+                    subtitle = "Fill in my name and number at checkout",
+                    onClick = { vm.setRememberDetails(!state.rememberDetails) },
+                ) {
+                    Switch(
+                        checked = state.rememberDetails,
+                        onCheckedChange = null, // the whole row is the button
+                        colors = SwitchDefaults.colors(checkedTrackColor = Kasi.Green),
+                    )
+                }
+                HorizontalDivider(color = Kasi.Divider)
+                SettingRow(
+                    title = "Privacy policy",
+                    subtitle = "What we collect and how to delete it",
+                    onClick = { uriHandler.openUri(PRIVACY_URL) },
+                ) { Text("Open", color = Kasi.Chilli, fontWeight = FontWeight.Bold) }
+                HorizontalDivider(color = Kasi.Divider)
+                SettingRow(title = "Staff login", subtitle = "For the truck team", onClick = onStaff) {
+                    Text("Open", color = Kasi.Chilli, fontWeight = FontWeight.Bold)
+                }
+            }
         }
 
         Text(
@@ -156,6 +191,26 @@ fun AccountScreen(vm: CustomerViewModel, state: CustomerUiState, onStaff: () -> 
             color = Kasi.Faint, fontSize = 12.sp,
             modifier = Modifier.align(Alignment.CenterHorizontally),
         )
+    }
+}
+
+private const val PRIVACY_URL = "https://shannos-food-truck.web.app/privacy.html"
+
+@Composable
+private fun SettingRow(title: String, subtitle: String, onClick: () -> Unit, trailing: @Composable () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, fontWeight = FontWeight.Bold)
+            Text(subtitle, color = Kasi.Muted, fontSize = 13.sp)
+        }
+        trailing()
     }
 }
 

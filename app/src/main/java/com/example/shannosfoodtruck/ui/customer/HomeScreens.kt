@@ -195,7 +195,7 @@ fun TruckPickerScreen(state: CustomerUiState, onPick: (String) -> Unit, onBack: 
                     .clip(RoundedCornerShape(18.dp))
                     .background(if (selected) Kasi.SignSoft else Kasi.Card)
                     .border(if (selected) 2.dp else 1.5.dp, if (selected) Kasi.Ink else Kasi.Line, RoundedCornerShape(18.dp))
-                    .clickable(enabled = truck.open, role = Role.RadioButton) { onPick(truck.id) }
+                    .clickable(enabled = truck.open && !truck.comingSoon, role = Role.RadioButton) { onPick(truck.id) }
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -209,11 +209,16 @@ fun TruckPickerScreen(state: CustomerUiState, onPick: (String) -> Unit, onBack: 
                 Column(Modifier.weight(1f)) {
                     Text(truck.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Text(truck.spot, color = Kasi.Muted, fontSize = 13.sp)
+                    if (truck.address.isNotBlank()) Text(truck.address, color = Kasi.Faint, fontSize = 12.sp)
                 }
-                if (truck.open) Badge("Open", Kasi.GreenSoft, Kasi.GreenDark) else Badge("Closed", Kasi.Divider, Kasi.Muted)
+                when {
+                    truck.comingSoon -> Badge("Coming soon", Kasi.AmberSoft, Kasi.AmberDark)
+                    truck.open -> Badge("Open", Kasi.GreenSoft, Kasi.GreenDark)
+                    else -> Badge("Closed", Kasi.Divider, Kasi.Muted)
+                }
             }
         }
-        SectionLabel("Closed trucks can't take orders")
+        SectionLabel("More trucks coming soon")
     }
 }
 

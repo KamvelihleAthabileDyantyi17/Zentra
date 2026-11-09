@@ -76,9 +76,9 @@ class CartTest {
 
     @Test
     fun stockStatus() {
-        assertEquals(StockStatus.OUT, StockItem("a", "A", 0, 5).status)
-        assertEquals(StockStatus.LOW, StockItem("a", "A", 3, 5).status)
-        assertEquals(StockStatus.OK, StockItem("a", "A", 5, 5).status)
+        assertEquals(StockStatus.OUT, StockItem("a", "A", 0.0, 5.0).status)
+        assertEquals(StockStatus.LOW, StockItem("a", "A", 3.0, 5.0).status)
+        assertEquals(StockStatus.OK, StockItem("a", "A", 5.0, 5.0).status)
     }
 
     @Test

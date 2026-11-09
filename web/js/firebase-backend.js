@@ -53,6 +53,11 @@ export async function createFirebaseBackend() {
       live(fs.query(fs.collection(db, "orders"), fs.where("customerUid", "==", uid), fs.limit(30)), cb,
         (list) => list.sort((a, b) => b.createdAt - a.createdAt)),
 
+    // createdAt only (automatic single-field index), truck picked here: no composite index needed
+    onOrdersSince: (truckId, since, cb) =>
+      live(fs.query(fs.collection(db, "orders"), fs.where("createdAt", ">=", since)), cb,
+        (list) => list.filter((o) => o.truckId === truckId)),
+
     onOpenOrders: (truckId, cb) =>
       live(fs.query(fs.collection(db, "orders"), fs.where("truckId", "==", truckId), fs.where("stage", "in", ["RECEIVED", "COOKING", "READY"])), cb,
         (list) => list.sort((a, b) => a.createdAt - b.createdAt)),

@@ -44,6 +44,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.shannosfoodtruck.data.Fulfilment
 import com.example.shannosfoodtruck.data.Order
 import com.example.shannosfoodtruck.data.OrderStage
+import com.example.shannosfoodtruck.data.PickupTimes
+import com.example.shannosfoodtruck.data.PurchasePlanner
+import com.example.shannosfoodtruck.data.Recipes
+import com.example.shannosfoodtruck.data.toQty
 import com.example.shannosfoodtruck.data.StockStatus
 import com.example.shannosfoodtruck.data.toRand
 import com.example.shannosfoodtruck.ui.components.BackHeader
@@ -122,7 +126,7 @@ private fun StaffDashboard(state: StaffUiState, vm: StaffViewModel, onExit: () -
         }
 
         // Section tabs
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StaffSection.entries.forEach { s ->
                 Toggle(s.label, state.section == s, dark = true) { vm.selectSection(s) }
             }
@@ -147,6 +151,7 @@ private fun StaffDashboard(state: StaffUiState, vm: StaffViewModel, onExit: () -
 
         when (state.section) {
             StaffSection.ORDERS -> OrdersBoard(state, vm::advance)
+            StaffSection.REPORT -> ReportSection(state, vm::selectBasis)
             StaffSection.MENU -> MenuManager(state, vm)
             StaffSection.STOCK -> StockList(state)
         }
@@ -223,12 +228,19 @@ private fun OrderTicket(order: Order, colors: Pair<Color, Color>, onAdvance: (Or
     Panel(padding = 14.dp) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(order.number, fontWeight = FontWeight.Bold)
-            Text(if (order.fulfilment == Fulfilment.PICKUP) "Collect" else "Delivery", color = Kasi.Muted, fontSize = 13.sp)
+            Text(
+                (if (order.fulfilment == Fulfilment.PICKUP) "Collect" else "Delivery") + " · " +
+                    (if (order.pickupTime == PickupTimes.ASAP) "ASAP" else order.pickupTime),
+                color = if (order.pickupTime == PickupTimes.ASAP) Kasi.Muted else Kasi.Chilli,
+                fontSize = 13.sp, fontWeight = FontWeight.Bold,
+            )
         }
         Text("${order.customerName} · ${order.phone}", fontSize = 14.sp)
         Text(order.lines.joinToString(", ") { if (it.quantity > 1) "${it.quantity} × ${it.name}" else it.name }, color = Kasi.Muted, fontSize = 14.sp)
         if (order.note.isNotBlank()) Text("Note: ${order.note}", fontSize = 13.sp, fontWeight = FontWeight.Bold)
-        if (order.fulfilment == Fulfilment.DELIVERY) Text("Deliver to: ${order.address}", fontSize = 13.sp)
+        if (order.fulfilment == Fulfilment.DELIVERY) {
+            Text("Deliver to: ${order.address} (${order.deliveryArea?.label ?: ""}, fee ${order.deliveryFee.toRand()})", fontSize = 13.sp)
+        }
         Row(
             Modifier.fillMaxWidth().padding(top = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -309,7 +321,7 @@ private fun StockList(state: StaffUiState) {
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(s.name, fontWeight = FontWeight.Bold)
-                    Text("On hand ${s.onHand} · reorder at ${s.reorderAt}", color = Kasi.Muted, fontSize = 13.sp)
+                    Text("On hand ${s.onHand.toQty()} ${s.unit} · reorder at ${s.reorderAt.toQty()} ${s.unit}", color = Kasi.Muted, fontSize = 13.sp)
                 }
                 when (s.status) {
                     StockStatus.OUT -> Badge("Out", Kasi.ChilliSoft, Kasi.ChilliDark)
@@ -320,5 +332,93 @@ private fun StockList(state: StaffUiState) {
             if (i < state.stock.lastIndex) HorizontalDivider(color = Kasi.Divider)
         }
     }
-    Text("Next step: stock drops automatically as orders come in.", color = Kasi.Muted, fontSize = 13.sp)
+    Text("See Sales & buying for what to buy, worked out from orders.", color = Kasi.Muted, fontSize = 13.sp)
+}
+
+// ---------- Sales & buying (Task 1: FR-10 Daily Purchase Recommendation, FR-12 sales) ----------
+
+@Composable
+private fun ReportSection(state: StaffUiState, onBasis: (ReportBasis) -> Unit) {
+    val sales = state.sales
+    val plan = state.purchasePlan
+    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ReportBasis.entries.forEach { b -> Toggle(b.label, state.reportBasis == b, dark = false) { onBasis(b) } }
+    }
+
+    // Sales
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        StatCard("Orders", "${sales.orderCount}", Modifier.weight(1f))
+        StatCard("Sales", sales.revenue.toRand(), Modifier.weight(1.4f), highlight = true)
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        StatCard("Items sold", "${sales.itemsSold}", Modifier.weight(1f))
+        StatCard("Average order", sales.averageOrder.toRand(), Modifier.weight(1.4f))
+    }
+    if (state.reportBasis == ReportBasis.WEEK) {
+        Text("Sales above are for the whole 7 days. The shopping list below is for one typical day.", color = Kasi.Muted, fontSize = 13.sp)
+    }
+    if (sales.topSellers.isNotEmpty()) {
+        Panel(padding = 14.dp) {
+            SectionLabel("Top sellers")
+            sales.topSellers.forEachIndexed { i, (name, qty) ->
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("${i + 1}. $name")
+                    Text("$qty sold", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+
+    // Daily Purchase Recommendation
+    Text("WHAT TO BUY", style = MaterialTheme.typography.titleLarge)
+    if (plan.isEmpty()) {
+        Text("No orders in this period yet, so there's nothing to recommend.", color = Kasi.Muted)
+        return
+    }
+    val toBuy = plan.filter { it.packsToBuy > 0 }
+    Panel(padding = 12.dp) {
+        plan.forEachIndexed { i, line ->
+            Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(line.ingredient.name, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Need ${line.needed.toQty()} ${line.ingredient.unit} · have ${line.onHand.toQty()}",
+                        color = Kasi.Muted, fontSize = 13.sp,
+                    )
+                    if (line.packsToBuy > 0) Text(line.ingredient.pack, color = Kasi.Faint, fontSize = 12.sp)
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    if (line.packsToBuy == 0) Badge("Enough", Kasi.GreenSoft, Kasi.GreenDark)
+                    else {
+                        Text("Buy ${line.packsToBuy}", fontWeight = FontWeight.Bold)
+                        Text(line.estimatedCost?.toRand() ?: "check price", color = Kasi.Muted, fontSize = 13.sp)
+                    }
+                }
+            }
+            if (i < plan.lastIndex) HorizontalDivider(color = Kasi.Divider)
+        }
+    }
+    Panel(padding = 16.dp) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Estimated shopping cost", fontWeight = FontWeight.Bold)
+            Text(PurchasePlanner.totalCost(toBuy).toRand(), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        }
+        Text(
+            "${toBuy.size} item(s) to buy. ${Recipes.PRICE_SOURCE} Portions are example recipes; adjust them in Recipes.kt.",
+            color = Kasi.Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp),
+        )
+    }
+}
+
+@Composable
+private fun StatCard(label: String, value: String, modifier: Modifier = Modifier, highlight: Boolean = false) {
+    Column(
+        modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (highlight) Kasi.Sign else Kasi.Card)
+            .padding(14.dp),
+    ) {
+        Text(label.uppercase(), style = MaterialTheme.typography.labelMedium, color = if (highlight) Kasi.Ink else Kasi.Muted)
+        Text(value, fontFamily = DisplayFont, fontWeight = FontWeight.Black, fontSize = 26.sp)
+    }
 }

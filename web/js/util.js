@@ -50,7 +50,7 @@ export const stageIndex = (id) => Math.max(0, STAGES.findIndex((s) => s.id === i
 export const stageInfo = (id) => STAGES[stageIndex(id)];
 export const nextStage = (id) => STAGES[Math.min(STAGES.length - 1, stageIndex(id) + 1)].id;
 
-export const orderTotal = (order) => (order.lines || []).reduce((sum, l) => sum + l.quantity * l.unitPrice, 0);
+export { orderTotal } from "./recipes.js"; // items + delivery fee
 export const orderCount = (order) => (order.lines || []).reduce((sum, l) => sum + l.quantity, 0);
 
 /** Short toast message at the bottom of the screen. */

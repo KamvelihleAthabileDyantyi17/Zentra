@@ -28,6 +28,9 @@ interface FoodRepository {
 
     // ---- staff only ----
     fun openOrders(truckId: String): Flow<List<Order>>
+
+    /** Every order for a truck since a time (any stage), for sales and purchase reports. */
+    fun ordersSince(truckId: String, sinceMillis: Long): Flow<List<Order>>
     suspend fun setStage(orderId: String, stage: OrderStage)
     suspend fun setAvailable(itemId: String, available: Boolean)
     fun stock(truckId: String): Flow<List<StockItem>>

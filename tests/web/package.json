@@ -1,0 +1,12 @@
+{
+  "name": "shannos-web-tests",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end test of the Shannos website in demo mode (customer + staff, two tabs).",
+  "scripts": {
+    "test": "node e2e.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.48.2"
+  }
+}

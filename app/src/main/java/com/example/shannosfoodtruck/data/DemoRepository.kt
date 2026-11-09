@@ -40,6 +40,10 @@ class DemoRepository(
         all.values.filter { it.customerUid == customerUid }.sortedByDescending { it.createdAt }
     }
 
+    override fun ordersSince(truckId: String, sinceMillis: Long): Flow<List<Order>> = ordersFlow.map { all ->
+        all.values.filter { it.truckId == truckId && it.createdAt >= sinceMillis }
+    }
+
     override fun openOrders(truckId: String): Flow<List<Order>> = ordersFlow.map { all ->
         all.values
             .filter { it.truckId == truckId && it.stage != OrderStage.COLLECTED }
