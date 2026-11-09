@@ -73,4 +73,10 @@ interface AuthService {
     suspend fun isStaff(): Boolean
 
     fun signOut()
+
+    /**
+     * Permanently deletes the signed-in account (Google Play requires apps with sign-in to offer this).
+     * Past orders stay in the truck's records but are no longer linked to a login.
+     */
+    suspend fun deleteAccount()
 }

@@ -149,4 +149,9 @@ export const auth = {
     setUser(null);
     log.i("DemoAuth", "Signed out");
   },
+
+  async deleteAccount() {
+    await this.signOut();
+    log.i("DemoAuth", "Account deleted (demo)");
+  },
 };

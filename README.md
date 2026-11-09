@@ -111,6 +111,13 @@ In the [Firebase console](https://console.firebase.google.com) for this project:
 
 Old collections from v1 (`menu_items`, sample `orders`/`feedback`) are no longer used and can be deleted.
 
+## Google Play
+
+Release guide, store listing text, data-safety answers and graphics: **[docs/play-store](docs/play-store/README.md)**.
+Release builds are signed from `keystore.properties` (local) or GitHub secrets (CI), and neither is ever committed.
+
+<img src="docs/play-store/feature-graphic-1024x500.png" alt="Play Store feature graphic" width="512">
+
 ## Logging
 
 All logs go through `data/AppLog.kt` with the tag **`Shannos`**. In Android Studio open **Logcat** and type `tag:Shannos` to see the app's story as you use it, for example:
@@ -140,6 +147,13 @@ Covers cart maths, sold-out handling, phone validation, order stages, a full cus
 - CI must be green before merging.
 
 ## Release notes
+
+### v2.3 — Ready for Google Play
+- **New app icon:** the Shannos "S" on sign yellow (adaptive icon plus legacy sizes).
+- **New: Delete my account** in the app and on the website (Google Play requires this for apps with sign-in).
+- **New: privacy policy page** (`web/privacy.html`) covering POPIA rights and account deletion.
+- **Release signing** from a local `keystore.properties` or GitHub secrets; CI builds a **signed APK and App Bundle** when the secrets are set.
+- Play Store listing text, data-safety answers, 512 px icon and feature graphic in `docs/play-store`.
 
 ### v2.2 — Website
 - **New: customer website** with the full ordering flow, live tracking, feedback and **Google sign-in**, sharing data with the app *(innovative feature)*.
@@ -176,6 +190,8 @@ Covers cart maths, sold-out handling, phone validation, order stages, a full cus
 ## Still to do
 
 - Deploy the website (Firebase Hosting steps above)
+- Change the application ID and upload to Play internal testing ([guide](docs/play-store/README.md))
+- Fill the `[PLACEHOLDERS]` in `web/privacy.html` (date, retention period, contact email)
 - Real truck locations for Trucks 2 and 3 (`StarterData.kt`, marked `TODO(team)`)
 - Delivery fee (currently shown as "[SET BY OWNER]")
 - Real card payments (e.g. a payment gateway); today, card is paid at collection

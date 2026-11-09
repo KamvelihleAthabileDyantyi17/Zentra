@@ -153,6 +153,21 @@ export async function createFirebaseBackend() {
       log.i("Auth", "Signing out");
       await fa.signOut(firebaseAuth);
     },
+
+    /** Permanently deletes the signed-in account (required by Google Play for apps with sign-in). */
+    async deleteAccount() {
+      const u = firebaseAuth.currentUser;
+      if (!u) return;
+      try {
+        await fa.deleteUser(u);
+        log.i("Auth", "Account deleted");
+      } catch (err) {
+        if (err.code === "auth/requires-recent-login") {
+          throw new Error("For your security, sign out, sign in again, then delete your account.");
+        }
+        throw err;
+      }
+    },
   };
 
   return { data, auth };

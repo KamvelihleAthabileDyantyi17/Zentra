@@ -112,4 +112,6 @@ class DemoAuthService : AuthService {
         staff = false
         user.value = null
     }
+
+    override suspend fun deleteAccount() = signOut()
 }
