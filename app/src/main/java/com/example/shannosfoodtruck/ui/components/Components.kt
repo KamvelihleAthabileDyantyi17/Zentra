@@ -248,5 +248,26 @@ fun BrandMark(subtitle: String) {
     }
 }
 
+/** "Continue with Google" button used for single sign-on on the Account and Staff screens. */
+@Composable
+fun GoogleButton(onClick: () -> Unit, modifier: Modifier = Modifier, loading: Boolean = false, text: String = "Continue with Google") {
+    androidx.compose.material3.OutlinedButton(
+        onClick = onClick,
+        enabled = !loading,
+        modifier = modifier.heightIn(min = 54.dp),
+        shape = CircleShape,
+        border = BorderStroke(1.5.dp, Kasi.Line),
+        colors = ButtonDefaults.outlinedButtonColors(containerColor = Kasi.Card, contentColor = Kasi.Ink),
+    ) {
+        if (loading) {
+            CircularProgressIndicator(Modifier.size(22.dp), color = Kasi.Ink, strokeWidth = 2.5.dp)
+        } else {
+            Text("G", color = Color(0xFF4285F4), fontWeight = FontWeight.Black, fontSize = 20.sp)
+            Spacer(Modifier.width(10.dp))
+            Text(text, style = MaterialTheme.typography.labelLarge, fontSize = 16.sp)
+        }
+    }
+}
+
 @Composable
 fun VSpace(height: Dp) = Spacer(Modifier.heightIn(min = height))

@@ -14,8 +14,8 @@ android {
         applicationId = "com.example.shannosfoodtruck"
         minSdk = 24
         targetSdk = 35
-        versionCode = 2
-        versionName = "2.0"
+        versionCode = 3
+        versionName = "2.1"
 
         // true  = live data from Firebase (Firestore + Auth)
         // false = offline demo data, handy for quick testing without internet
@@ -34,6 +34,10 @@ android {
     }
     kotlinOptions {
         jvmTarget = "17"
+    }
+    testOptions {
+        // Lets android.util.Log calls run harmlessly inside plain JVM unit tests
+        unitTests.isReturnDefaultValues = true
     }
     buildFeatures {
         compose = true
@@ -59,6 +63,11 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.auth)
     implementation(libs.kotlinx.coroutines.play.services)
+
+    // Google sign-in (SSO) via Android Credential Manager
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services)
+    implementation(libs.googleid)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

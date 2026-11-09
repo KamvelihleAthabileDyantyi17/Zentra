@@ -22,7 +22,12 @@ Built by the **Zentra** team.
 3. Track the order live: Received → On the pan → Ready to collect → Collected
 4. Rate the food
 
-**Staff** (Home → *Staff login*):
+**Account** (single sign-on):
+- *Continue with Google* on the Account tab. Optional: guests can still order.
+- Signing in keeps your name for checkout and shows **My orders** (live), on any phone. A guest who signs in keeps the order they just placed.
+- Stays signed in between launches until you tap *Sign out*.
+
+**Staff** (Account → *Staff login*, with Google or email):
 - Live order board per truck. One tap moves an order to the next stage, and the customer's phone updates instantly.
 - Mark menu items sold out (they disappear from customers' carts straight away)
 - Stock levels with Low / Out flags
@@ -30,7 +35,9 @@ Built by the **Zentra** team.
 ## Tech
 
 - Kotlin, Jetpack Compose (Material 3), Navigation Compose, ViewModel + StateFlow
-- Firebase: Cloud Firestore (real-time data) and Authentication (anonymous for customers, email/password for staff)
+- Firebase: Cloud Firestore (real-time data) and Authentication (Google SSO, guest, staff email)
+- Android Credential Manager for Google sign-in
+- Logging through one `AppLog` helper (filter Logcat with `tag:Shannos`)
 - Gradle 8.11 · Android Gradle Plugin 8.7 · Kotlin 2.0 · JDK 17 · min SDK 24
 
 ```
@@ -43,7 +50,8 @@ app/src/main/java/com/example/shannosfoodtruck/
 └── ui/
     ├── theme/                          kasi colours + type
     ├── components/                     shared buttons, tiles, fields
-    ├── customer/                       home, menu, cart, checkout, track, feedback
+    ├── auth/                           Google sign-in (Credential Manager)
+    ├── customer/                       home, menu, cart, checkout, track, feedback, account
     └── staff/                          login + dashboard
 ```
 
@@ -58,13 +66,32 @@ app/src/main/java/com/example/shannosfoodtruck/
 
 In the [Firebase console](https://console.firebase.google.com) for this project:
 
-1. **Authentication → Sign-in method:** enable **Anonymous** and **Email/Password**.
+1. **Authentication → Sign-in method:** enable **Google**, **Anonymous** and **Email/Password**.
+1. **Add every developer's SHA-1 fingerprint** (Google sign-in fails with "developer error" without it):
+   - In Android Studio's terminal run `./gradlew signingReport` and copy the **SHA1** line under `Variant: debug`.
+   - Firebase console → ⚙ Project settings → Your apps → the Android app → **Add fingerprint** → paste → Save.
+   - Each team member's computer has its own debug key, so each person adds theirs. Add the release key's SHA-1 too when we sign for the Play Store.
+   - Download the updated `google-services.json` and replace `app/google-services.json`.
 2. **Authentication → Users:** add a staff user (e.g. the owner's email). Copy their **User UID**.
-3. **Firestore → Data:** create a collection `staff` with a document whose ID is that UID (fields can be anything, e.g. `name: "Owner"`).
+3. **Firestore → Data:** create a collection `staff` with a document whose ID is that UID (to let a staff member use Google instead, sign in with Google once, then copy *that* UID from Authentication → Users) (fields can be anything, e.g. `name: "Owner"`).
 4. **Firestore → Rules:** paste the contents of [`firestore.rules`](firestore.rules) and publish.
-5. In the app: Home → Staff login → sign in → **Menu → Load starter menu**. This creates the menu, the three trucks and stock lists. It never overwrites existing data.
+5. In the app: Account → Staff login → sign in → **Menu → Load starter menu**. This creates the menu, the three trucks and stock lists. It never overwrites existing data.
 
 Old collections from v1 (`menu_items`, sample `orders`/`feedback`) are no longer used and can be deleted.
+
+## Logging
+
+All logs go through `data/AppLog.kt` with the tag **`Shannos`**. In Android Studio open **Logcat** and type `tag:Shannos` to see the app's story as you use it, for example:
+
+```
+I Shannos: [App] Started v2.1 using Firebase (live data)
+D Shannos: [CustomerVM] Menu loaded: 11 items, 1 sold out
+I Shannos: [Auth] Signed in with Google
+D Shannos: [FirestoreRepository] Placing order SFT-48213 (3 items) for truck1
+D Shannos: [CustomerVM] Order SFT-48213 is now COOKING
+```
+
+Levels: `d` normal flow, `i` sign-in/out, `w` recovered problems, `e` failures shown to the user. Passwords, tokens and phone numbers are never logged.
 
 ## Tests
 
@@ -72,7 +99,7 @@ Old collections from v1 (`menu_items`, sample `orders`/`feedback`) are no longer
 ./gradlew testDebugUnitTest
 ```
 
-Covers cart maths, sold-out handling, phone validation, order stages, and a full customer → staff → customer order journey on demo data. GitHub Actions runs the tests and builds the APK on every push. Download the APK from the workflow run's artifacts.
+Covers cart maths, sold-out handling, phone validation, order stages, a full customer → staff → customer order journey, and Google sign-in (guest orders kept after sign-in, sign-out ends the session, staff Google login) on demo data. GitHub Actions runs the tests and builds the APK on every push. Download the APK from the workflow run's artifacts.
 
 ## Team workflow
 
@@ -80,8 +107,35 @@ Covers cart maths, sold-out handling, phone validation, order stages, and a full
 - The Team Lead reviews PRs against the design prototype.
 - CI must be green before merging.
 
+## Release notes
+
+### v2.1 — Google single sign-on and logging
+- **New: Continue with Google** (SSO) for customers on a new **Account** tab, using Android Credential Manager and Firebase Authentication.
+- **New: guest-to-Google account linking.** Order as a guest, sign in afterwards, and the order stays with you.
+- **New: My orders.** A signed-in customer's order history, updating live.
+- **New: staff can sign in with Google** as well as email; only accounts on the staff list get in.
+- Session stays signed in between launches; *Sign out* ends it and stops tracking that account's order.
+- Checkout name is pre-filled from the Google account.
+- Logging added throughout (`AppLog`, tag `Shannos`).
+- Staff login moved from Home to the Account tab.
+- Firestore rules: customers may list only their own orders.
+
+### v2.0 — Full rebuild (since the prototype)
+- Rebuilt the whole app in **Jetpack Compose** to match the new kasi-style design prototype; removed the old Fragment/XML screens.
+- **One login system and one data source** (Firebase) instead of two logins (Firebase + local SQLite) and two settings screens.
+- Fixed: Settings screen crash on open; failing tests; CI broken by a non-executable `gradlew` and mismatched Gradle/Kotlin/Java versions.
+- **New: live order tracking.** Received → On the pan → Ready → Collected, updated instantly when staff move the order *(innovative feature)*.
+- **New: staff dashboard in the app.** Live order board per truck, one-tap stage changes, sold-out toggles, stock levels *(innovative feature)*.
+- **New: multi-truck ordering.** Customers choose which truck to collect from.
+- **New: sold-out items disappear from carts automatically** when staff mark them out.
+- **New: guest checkout** with South African cellphone validation, collect-or-delivery and card-or-cash.
+- **New: feedback is saved** (it was previously discarded).
+- **New: Firestore security rules**; no more fake orders/feedback written to the live database.
+- **New: offline demo mode** (`USE_FIREBASE = false`) and unit tests; CI uploads the APK.
+
 ## Still to do
 
+- Website with the same Google sign-in (next)
 - Real truck locations for Trucks 2 and 3 (`StarterData.kt`, marked `TODO(team)`)
 - Delivery fee (currently shown as "[SET BY OWNER]")
 - Real card payments (e.g. a payment gateway); today, card is paid at collection
