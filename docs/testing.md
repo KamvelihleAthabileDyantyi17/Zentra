@@ -7,7 +7,7 @@ Task 2 feedback asked us to *"complete and test the end-to-end customer journey 
 | Suite | What it proves | Where to see it passing |
 | --- | --- | --- |
 | App unit tests (33) | Cart maths, checkout validation, order stages, full customer → staff → customer journey, Google sign-in and sign-out, account deletion, delivery fees, pickup times, settings, sales report and purchase recommendation | GitHub → Actions → latest run → **build** job → *Unit tests* step |
-| Website end-to-end test (21 checks) | A customer and a staff member in two browser tabs: order, live status updates, Sales & buying, sold-out, sign-in, settings, deletion, phone layout | GitHub → Actions → latest run → **website** job; screenshots in the **website-test-screenshots** artifact |
+| Website end-to-end test (20 checks) | A customer and a staff member in two browser tabs: order, live status updates, Sales & buying, sold-out, sign-in, settings, deletion, phone layout | GitHub → Actions → latest run → **website** job; screenshots in the **website-test-screenshots** artifact |
 
 **Evidence to add:** a screenshot of a green Actions run, saved as `docs/screenshots/testing/actions-green.png`.
 

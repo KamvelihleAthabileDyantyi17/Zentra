@@ -194,7 +194,7 @@ fun AccountScreen(vm: CustomerViewModel, state: CustomerUiState, onStaff: () -> 
     }
 }
 
-private const val PRIVACY_URL = "https://shannos-food-truck.web.app/privacy.html"
+private const val PRIVACY_URL = "https://shannos-food-truck-3349e.web.app/privacy.html"
 
 @Composable
 private fun SettingRow(title: String, subtitle: String, onClick: () -> Unit, trailing: @Composable () -> Unit) {

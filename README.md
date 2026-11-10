@@ -41,7 +41,7 @@ Then open http://localhost:8000. In VS Code, the *Live Server* extension also wo
 ### Put the website online (Firebase Hosting, free)
 1. Firebase console → ⚙ Project settings → Your apps → **Add app → Web**. Copy the `appId` into `web/js/config.js` and set `USE_FIREBASE = true`.
 2. Install the Firebase CLI once: `npm install -g firebase-tools`, then `firebase login`.
-3. From the repo root: `firebase deploy --only hosting`. The site goes live at **https://shannos-food-truck.web.app**.
+3. From the repo root: `firebase deploy --only hosting`. The site goes live at **https://shannos-food-truck-3349e.web.app**.
 4. Google sign-in works on that address automatically (Firebase authorises its own domains). For any other domain, add it under Authentication → Settings → Authorized domains.
 
 Website logging: open DevTools (F12) → Console and filter by `Shannos`.
@@ -72,7 +72,7 @@ Website logging: open DevTools (F12) → Console and filter by `Shannos`.
 - Firebase: Cloud Firestore (real-time data) and Authentication (Google SSO, guest, staff email)
 - Android Credential Manager for Google sign-in
 - Logging through one `AppLog` helper (filter Logcat with `tag:Shannos`)
-- Gradle 8.11 · Android Gradle Plugin 8.7 · Kotlin 2.0 · JDK 17 · min SDK 24
+- Gradle 8.11 · Android Gradle Plugin 8.10 · Kotlin 2.0 · JDK 17 · min SDK 24 · target SDK 36 (Android 16, required by Google Play since 31 Aug 2026)
 
 ```
 app/src/main/java/com/example/shannosfoodtruck/
@@ -170,7 +170,7 @@ Levels: `d` normal flow, `i` sign-in/out, `w` recovered problems, `e` failures s
 - `PurchasePlannerTest`: every menu item has a recipe, sales summary, ingredient usage, rounding up to whole packs, subtracting stock, 7-day average, delivery fees, pickup time slots
 - `OrderFlowTest`: full customer → staff → customer journey on demo data, invalid checkout blocked, Google sign-in keeps guest orders, sign-out, account deletion, staff Google login, coming-soon trucks, R50 delivery, remembered details, staff sales report
 
-**Website end-to-end test** (`tests/web/e2e.mjs`, 21 checks): opens the shop and the staff dashboard in two browser tabs, places an order, moves it through every stage, and checks the customer sees each step live; also delivery fees, Sales & buying, sold-out, Google sign-in, settings, account deletion and the phone layout. GitHub Actions saves its screenshots as the **website-test-screenshots** artifact.
+**Website end-to-end test** (`tests/web/e2e.mjs`, 20 checks): opens the shop and the staff dashboard in two browser tabs, places an order, moves it through every stage, and checks the customer sees each step live; also delivery fees, Sales & buying, sold-out, Google sign-in, settings, account deletion and the phone layout. GitHub Actions saves its screenshots as the **website-test-screenshots** artifact.
 
 **Physical phone testing:** see the checklist in [`docs/testing.md`](docs/testing.md).
 
@@ -184,6 +184,12 @@ GitHub Actions also builds the APK on every push. Download it from the workflow 
 
 ## Release notes
 
+### v2.5 — Live Firebase and Google Play ID
+- New Firebase project **shannos-food-truck-3349e** (Johannesburg, africa-south1) for the app and the website.
+- App ID changed to **za.co.shannos.foodtruck**, ready for Google Play.
+- Website switched to live mode (`USE_FIREBASE = true`); the CI browser test still runs on demo data.
+- Targets Android 16 (API 36), required by Google Play since 31 August 2026.
+
 ### v2.4 — Lecturer feedback and client requirements
 - **New: Daily Purchase Recommendation** (Task 1, FR-10/FR-14) for staff on app and web: turns real orders into a shopping list of Checkers packs, minus stock on the truck, with an estimated cost *(innovative feature)*.
 - **New: sales report** (Task 1, FR-12): orders, sales, average order and top sellers for today or the last 7 days.
@@ -195,6 +201,7 @@ GitHub Actions also builds the APK on every push. Download it from the workflow 
 - Stock is now tracked per ingredient with units (loaves, kg, slices…).
 - Confirmation only after the order is saved (Task 2 feedback) is now commented in the code on both platforms.
 - End-user guide and physical-phone test checklist added.
+- Targets Android 16 (API 36), which Google Play has required for new apps since 31 August 2026 (Android Gradle Plugin 8.10).
 
 ### v2.3 — Ready for Google Play
 - **New app icon:** the Shannos "S" on sign yellow (adaptive icon plus legacy sizes).

@@ -14,7 +14,9 @@ a signed APK, store screenshots, and a screenshot of the app uploaded in Google 
 
 ---
 
-## 1. Change the application ID (do this with the Firebase person)
+## 1. Change the application ID ✅ done in v2.5
+
+The app now uses `za.co.shannos.foodtruck`, registered in the Firebase project `shannos-food-truck-3349e`. The steps below are kept for reference.
 
 Google Play **rejects** IDs starting with `com.example`, so the app needs a real one, e.g. `za.co.shannos.foodtruck`.
 The ID can never change after the first upload, so choose carefully.
@@ -108,7 +110,7 @@ Play Console → **Create app**
 
 | Section | Answer |
 | --- | --- |
-| Privacy policy | `https://shannos-food-truck.web.app/privacy.html` (after the website is deployed) |
+| Privacy policy | `https://shannos-food-truck-3349e.web.app/privacy.html` (after the website is deployed) |
 | App access | Some functionality is restricted. Add a staff test login (email + password) so reviewers can see the dashboard |
 | Ads | No ads |
 | Content rating | Questionnaire → category *Food & drink / utility*; answer No to violence, etc. Expect "Everyone / 3+" |
@@ -125,7 +127,7 @@ Play Console → **Create app**
 | --- | --- |
 | Collects or shares user data? | Collects: **yes**. Shares: **no** (Firebase is a service provider, which is not "sharing") |
 | Encrypted in transit? | Yes |
-| Can users request deletion? | Yes: in-app *Delete my account*, plus the web link `https://shannos-food-truck.web.app/privacy.html#delete-account` |
+| Can users request deletion? | Yes: in-app *Delete my account*, plus the web link `https://shannos-food-truck-3349e.web.app/privacy.html#delete-account` |
 | Personal info: Name | Collected · App functionality, Account management · optional for Google sign-in, required to order |
 | Personal info: Email address | Collected · Account management · optional (only with Google sign-in) |
 | Personal info: Phone number | Collected · App functionality (contact about the order) · required to order |

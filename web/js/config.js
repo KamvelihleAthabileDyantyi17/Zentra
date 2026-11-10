@@ -6,18 +6,17 @@
 //           orders still update live between them.
 //   true  = live mode: same Firebase project as the Android app, so orders, menu and Google
 //           accounts are shared between the app and the website.
-export const USE_FIREBASE = false;
+export const USE_FIREBASE = true;
 
 // Firebase project settings (Firebase console → Project settings → Your apps → Web app).
 // These values are not secret: Firebase protects data with the rules in /firestore.rules.
-// TODO(firebase): register a Web app in the console and paste its appId below.
 export const firebaseConfig = {
-  apiKey: "AIzaSyBSf0IIJXRiGtzi84o7I4vIOw_0sassGYg",
-  authDomain: "shannos-food-truck.firebaseapp.com",
-  projectId: "shannos-food-truck",
-  storageBucket: "shannos-food-truck.firebasestorage.app",
-  messagingSenderId: "358281923499",
-  appId: "PASTE_WEB_APP_ID_HERE",
+  apiKey: "AIzaSyB9xj4HV3i0LQALt28dUQIXiaARjo1s5Ag",
+  authDomain: "shannos-food-truck-3349e.firebaseapp.com",
+  projectId: "shannos-food-truck-3349e",
+  storageBucket: "shannos-food-truck-3349e.firebasestorage.app",
+  messagingSenderId: "228911235953",
+  appId: "1:228911235953:web:c5e332adead74a5ae92cd0",
 };
 
 // Firebase JavaScript SDK version loaded from Google's CDN.
