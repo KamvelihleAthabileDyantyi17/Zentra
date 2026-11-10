@@ -27,7 +27,7 @@ android {
 
     defaultConfig {
         // Must match the package in app/google-services.json
-        applicationId = "com.example.shannosfoodtruck"
+        applicationId = "za.co.shannos.foodtruck"
         minSdk = 24
         targetSdk = 36
         versionCode = 5

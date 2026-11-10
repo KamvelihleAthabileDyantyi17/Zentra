@@ -41,7 +41,7 @@ Then open http://localhost:8000. In VS Code, the *Live Server* extension also wo
 ### Put the website online (Firebase Hosting, free)
 1. Firebase console → ⚙ Project settings → Your apps → **Add app → Web**. Copy the `appId` into `web/js/config.js` and set `USE_FIREBASE = true`.
 2. Install the Firebase CLI once: `npm install -g firebase-tools`, then `firebase login`.
-3. From the repo root: `firebase deploy --only hosting`. The site goes live at **https://shannos-food-truck.web.app**.
+3. From the repo root: `firebase deploy --only hosting`. The site goes live at **https://shannos-food-truck-3349e.web.app**.
 4. Google sign-in works on that address automatically (Firebase authorises its own domains). For any other domain, add it under Authentication → Settings → Authorized domains.
 
 Website logging: open DevTools (F12) → Console and filter by `Shannos`.
@@ -183,6 +183,12 @@ GitHub Actions also builds the APK on every push. Download it from the workflow 
 - CI must be green before merging.
 
 ## Release notes
+
+### v2.5 — Live Firebase and Google Play ID
+- New Firebase project **shannos-food-truck-3349e** (Johannesburg, africa-south1) for the app and the website.
+- App ID changed to **za.co.shannos.foodtruck**, ready for Google Play.
+- Website switched to live mode (`USE_FIREBASE = true`); the CI browser test still runs on demo data.
+- Targets Android 16 (API 36), required by Google Play since 31 August 2026.
 
 ### v2.4 — Lecturer feedback and client requirements
 - **New: Daily Purchase Recommendation** (Task 1, FR-10/FR-14) for staff on app and web: turns real orders into a shopping list of Checkers packs, minus stock on the truck, with an estimated cost *(innovative feature)*.

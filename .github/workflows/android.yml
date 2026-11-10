@@ -87,6 +87,8 @@ jobs:
         env:
           SHOTS_DIR: ${{ github.workspace }}/web-test-screenshots
         run: |
+          # The test runs on demo data, whatever the live setting in config.js is.
+          sed -i 's/export const USE_FIREBASE = true;/export const USE_FIREBASE = false;/' ../../web/js/config.js
           (cd ../../web && python3 -m http.server 8765 >/dev/null 2>&1 &)
           sleep 2
           npm test
