@@ -255,3 +255,5 @@ GitHub Actions also builds the APK on every push. Download it from the workflow 
 - Anton headline font in the app (instructions in `ui/theme/Theme.kt`)
 
 Project documents (plan, report, architecture, task list, old HTML prototype) are in [`docs/`](docs/).
+
+DEMO VIDEO LINK: https://youtu.be/hOX_icmgwE0
